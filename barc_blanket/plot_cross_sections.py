@@ -41,8 +41,19 @@ def nu_fission(materials:list[Material], axis=None, normalize=True):
 
     return fig
 
-def nu_scatter():
-    pass
+def nu_scatter(materials:list[Material], axis=None, normalize=True):
+    if normalize:
+        divisor_xs = ['absorption']
+    else:
+        divisor_xs = None
+    
+    reactions = {}
+    for material in materials:
+        reactions[material] = ['nu-scatter']
+
+    fig = plot_xs(reactions, axis=axis, divisor_types=divisor_xs)
+
+    return fig
 
 def absorption():
     pass

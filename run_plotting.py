@@ -28,13 +28,12 @@ tank_contents.add_nuclide('Pu238', 0.2)
 tank_contents.set_density('g/cm3', 8.0)
 
 waste_fraction = 0.01 # Starting with 1% of the burner blanket contents being waste
-slurry = openmc.Material(name="Slurry")
-slurry.mix_materials([flibe, tank_contents], [1-waste_fraction, waste_fraction])
-slurry.set_density("g/cm3", 4) # Just a guess, I think this is causing divide by zero error if you don't include it?
-
+slurry = openmc.Material.mix_materials([flibe, tank_contents], [1-waste_fraction, waste_fraction], name="Slurry")
 
 # 3. Plot the cross sections for the materials
 
-fig = pltxs.nu_fission([uranium_fuel], normalize=True)
-
+fig = pltxs.nu_fission([uranium_fuel, slurry], normalize=True)
 fig.savefig('nu_fission.png')
+
+fig = pltxs.nu_scatter([uranium_fuel, slurry], normalize=True)
+fig.savefig('nu_scatter.png')
