@@ -42,6 +42,28 @@ def nu_fission(materials:list[Material], axis=None, normalize=True):
     return fig
 
 def nu_scatter(materials:list[Material], axis=None, normalize=True):
+    """Plot the number of new neutrons produced per scattering interaction for a list of materials.
+    
+    Parameters:
+    -----------
+    materials: list[openmc.Material]
+        A list of materials to plot the nu-scatter for.
+    axis : matplotlib.axes, optional
+        A previously generated axis to use for plotting. If not specified,
+        a new axis and figure will be generated.
+    normalize: bool
+        If True, normalize the nu-scatter cross section to the absorption cross section.
+        If False, plot the nu-scatter cross section as is.
+
+    Returns:
+    --------
+    fig : matplotlib.figure.Figure
+        If axis is None, then a Matplotlib Figure of the generated
+        cross section will be returned. Otherwise, a value of
+        None will be returned as the figure and axes have already been
+        generated.
+
+    """
     if normalize:
         divisor_xs = ['absorption']
     else:
