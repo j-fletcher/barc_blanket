@@ -1,4 +1,5 @@
 import openmc
+import openmc.stats
 import openmc.deplete
 import numpy as np
 
@@ -117,8 +118,8 @@ def make_model():
         settings = openmc.Settings(run_mode='fixed source')
         settings.photon_transport = False
         settings.source = source
-        settings.batches = 5
-        settings.particles = int(1e5) # modify this to shorten simulation, default was 1e6 
+        settings.batches = 4
+        settings.particles = int(1e4) # modify this to shorten simulation, default was 1e6 
         settings.statepoint = {'batches': [
             5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100]}
         settings.output = {'tallies': True}
@@ -195,8 +196,9 @@ def run_independent_vessel_activation(model:openmc.Model, days=365, num_timestep
         with open(vv_microxs_file, 'wb') as f:
             pickle.dump(vv_microxs, f)
 
-    # TODO: actually calculate the volumes of cells
-    vv_cell.fill.volume = 8
+    # TODO: programmatically calculate volume of cells
+    # At the moment assuming R = 680 cm and a1 = 125 cm, a2 = 127 cm
+    vv_cell.fill.volume = (2*np.pi*680) * (np.pi*127**2 - np.pi*125**2)
 
     # Perform depletion
     vv_operator = openmc.deplete.IndependentOperator(openmc.Materials([vv_cell.fill]),
@@ -216,26 +218,12 @@ def run_independent_vessel_activation(model:openmc.Model, days=365, num_timestep
     
     vv_integrator.integrate()
 
-def extract_activity(results, nuclide):
-    # Another thing taken from John
-    timesteps = results.get_times()
+def extract_activities():
+    # Another thing taken from John: https://github.com/jlball/arc-nonproliferation/commit/04de395e19fd30344d9e5b2366918e149593b5d0
+    material = '3' # TODO: figure out how to get this properly
 
-    activities = np.empty(len(timesteps))
-
-    for i, step in enumerate(timesteps):
-        materials = results.export_to_materials(i)
-
-        doped_flibe_channels = get_material_by_name(materials, 'doped flibe channels')
-        doped_flibe_blanket = get_material_by_name(materials, 'doped flibe blanket')
-
-        try:
-            channels_act = doped_flibe_channels.get_activity(by_nuclide=True)
-            blanket_act = doped_flibe_blanket.get_activity(by_nuclide=True)
-
-            total_act = channels_act[nuclide] + blanket_act[nuclide]
-        except:
-            total_act = 0
-
-        activities[i] = total_act
+    # load results
+    results = openmc.deplete.ResultsList.from_hdf5("depletion_results.h5")
+    activities = results.get_activity(material)
 
     return activities
