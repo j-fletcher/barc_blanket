@@ -1,4 +1,4 @@
-from barc_blanket.vessel_activation import make_model
+from barc_blanket.vessel_activation import make_model, run_independent_vessel_activation
 import os
 
 
@@ -8,4 +8,8 @@ if not os.path.exists(working_directory):
     os.makedirs(working_directory)
 os.chdir(working_directory)
 
-make_model()
+model = make_model()
+
+run_independent_vessel_activation(model, days=365, num_timesteps=50, source_rate=1e8)
+
+# load results
