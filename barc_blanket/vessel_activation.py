@@ -27,19 +27,27 @@ def make_model():
         flibe.set_density("g/cm3", 1.94)
 
         # Inconel 718
-        inconel718 = openmc.Material(name='inconel718')
-        inconel718.depletable = True
-        inconel718.add_element('Ni', 53.0, 'wo')
-        inconel718.add_element('Cr', 19.06, 'wo')
-        inconel718.add_element('Nb', 5.08, 'wo')
-        inconel718.add_element('Mo', 3.04, 'wo')
-        inconel718.add_element('Ti', 0.93, 'wo')
-        inconel718.add_element('Al', 0.52, 'wo')
-        inconel718.add_element('Co', 0.11, 'wo')
-        inconel718.add_element('Cu', 0.02, 'wo')
-        inconel718.add_element('C', 0.021, 'wo')
-        inconel718.add_element('Fe', 18.15, 'wo')
-        inconel718.set_density('g/cm3', 8.19)
+        # inconel718 = openmc.Material(name='inconel718')
+        # inconel718.depletable = True
+        # inconel718.add_element('Ni', 53.0, 'wo')
+        # inconel718.add_element('Cr', 19.06, 'wo')
+        # inconel718.add_element('Nb', 5.08, 'wo')
+        # inconel718.add_element('Mo', 3.04, 'wo')
+        # inconel718.add_element('Ti', 0.93, 'wo')
+        # inconel718.add_element('Al', 0.52, 'wo')
+        # inconel718.add_element('Co', 0.11, 'wo')
+        # inconel718.add_element('Cu', 0.02, 'wo')
+        # inconel718.add_element('C', 0.021, 'wo')
+        # inconel718.add_element('Fe', 18.15, 'wo')
+        # inconel718.set_density('g/cm3', 8.19)
+
+        # Vanadium alloy
+        vanadium44 = openmc.Material(name='vanadium44')
+        vanadium44.depletable = True
+        vanadium44.add_element('V', 92.0, 'wo')
+        vanadium44.add_element('Ti', 4.0, 'wo')
+        vanadium44.add_element('Cr', 4.0, 'wo')
+        vanadium44.set_density('g/cm3', 6.11)
 
         eurofer = openmc.Material(name='eurofer')
         eurofer.add_element('Cr', 8.99866, 'wo')
@@ -77,7 +85,8 @@ def make_model():
 
         vv_cell = openmc.Cell(name="vv_cell")
         vv_cell.region = +vv & -blanket_tank
-        vv_cell.fill = inconel718
+        #vv_cell.fill = inconel718
+        vv_cell.fill = vanadium44
 
         blanket1_cell = openmc.Cell()
         blanket1_cell.region = +blanket_tank & -tank_divider_in
@@ -85,7 +94,8 @@ def make_model():
 
         tank_divider_cell = openmc.Cell()
         tank_divider_cell.region = +tank_divider_in & -tank_divider_out
-        tank_divider_cell.fill = inconel718
+        #tank_divider_cell.fill = inconel718
+        tank_divider_cell.fill = vanadium44
 
         blanket2_cell = openmc.Cell()
         blanket2_cell.region = +tank_divider_out & -burner_tank
@@ -118,10 +128,10 @@ def make_model():
         settings = openmc.Settings(run_mode='fixed source')
         settings.photon_transport = False
         settings.source = source
-        settings.batches = 4
+        settings.batches = 40
         settings.particles = int(1e4) # modify this to shorten simulation, default was 1e6 
-        settings.statepoint = {'batches': [
-            5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100]}
+        #settings.statepoint = {'batches': [
+        #    5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100]}
         settings.output = {'tallies': True}
 
         burner_cell_filter = openmc.CellFilter(blanket2_cell)
@@ -146,7 +156,7 @@ def make_model():
         tally3.filters = [burner_cell_filter]
         tally3.scores = ["heating-local"]
 
-        materials = openmc.Materials([dt_plasma,flibe,inconel718,eurofer])
+        materials = openmc.Materials([dt_plasma,flibe,vanadium44,eurofer])
         geometry = openmc.Geometry(universe)
         tallies = openmc.Tallies([tally1,tally2,tally3])     
 
@@ -155,9 +165,12 @@ def make_model():
 
         model.export_to_model_xml()
 
+        # Also save materials to file
+        materials.export_to_xml()
+
     return model
 
-def run_independent_vessel_activation(model:openmc.Model, days=365, num_timesteps=50, source_rate=1e8):
+def run_independent_vessel_activation(model:openmc.Model, days=365, num_timesteps=50, source_rate=2e20):
     """ Run the vessel activation after a certain number of days.
 
     Parameters:
@@ -169,7 +182,7 @@ def run_independent_vessel_activation(model:openmc.Model, days=365, num_timestep
     num_timesteps : int
         The number of timesteps to run the model for.
     source_rate : float
-        The source rate of neutrons in the model.
+        The source rate of neutrons in the model. Default is 2e20 (for a 500MW fusion reactor)
     """
 
     openmc.config['cross_sections'] = '/home/zkeith/openmc_resources/endfb-viii.0-hdf5/cross_sections.xml'
@@ -200,7 +213,7 @@ def run_independent_vessel_activation(model:openmc.Model, days=365, num_timestep
     # At the moment assuming R = 680 cm and a1 = 125 cm, a2 = 127 cm
     vv_cell.fill.volume = (2*np.pi*680) * (np.pi*127**2 - np.pi*125**2)
 
-    # Perform depletion
+    # Perform depletion (CHECK NORMALIZATION MODE)
     vv_operator = openmc.deplete.IndependentOperator(openmc.Materials([vv_cell.fill]),
                                                     vv_flux,
                                                     vv_microxs,
@@ -220,10 +233,26 @@ def run_independent_vessel_activation(model:openmc.Model, days=365, num_timestep
 
 def extract_activities():
     # Another thing taken from John: https://github.com/jlball/arc-nonproliferation/commit/04de395e19fd30344d9e5b2366918e149593b5d0
+    openmc.config['cross_sections'] = '/home/zkeith/openmc_resources/endfb-viii.0-hdf5/cross_sections.xml'
+    openmc.config['chain_file'] = '/home/zkeith/openmc_resources/chain_endfb80_sfr.xml'
+    
     material = '3' # TODO: figure out how to get this properly
 
     # load results
     results = openmc.deplete.ResultsList.from_hdf5("depletion_results.h5")
-    activities = results.get_activity(material)
+    
+    timesteps = results.get_times()
+    activities = np.empty(len(timesteps))
+    dists = np.empty(len(timesteps))
 
-    return activities
+    for i, step in enumerate(timesteps):
+        materials = results.export_to_materials(i)
+
+        vv_material = materials[2]
+
+        activities[i] = vv_material.get_activity()
+        dists[i] = vv_material.get_decay_photon_energy()
+
+    #activities = results.get_activity(material)
+
+    return timesteps, activities, dists
