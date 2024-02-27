@@ -195,6 +195,9 @@ def run_independent_vessel_activation(model:openmc.Model, days=365, num_timestep
         with open(vv_microxs_file, 'wb') as f:
             pickle.dump(vv_microxs, f)
 
+    # TODO: actually calculate the volumes of cells
+    vv_cell.fill.volume = 8
+
     # Perform depletion
     vv_operator = openmc.deplete.IndependentOperator(openmc.Materials([vv_cell.fill]),
                                                     vv_flux,
@@ -203,16 +206,15 @@ def run_independent_vessel_activation(model:openmc.Model, days=365, num_timestep
                                                     reduce_chain=True,
                                                     reduce_chain_level=5) # TODO: figure out what this does and why we set to 5
     
-    time_steps = np.linspace(0, days, num_timesteps)
+    time_steps = [days/num_timesteps] * num_timesteps
     source_rates = np.ones(num_timesteps) * source_rate
 
     vv_integrator = openmc.deplete.PredictorIntegrator(vv_operator, 
-                                                       time_steps=time_steps,
+                                                       time_steps,
                                                        timestep_units='d',
                                                        source_rates=source_rates)
     
     vv_integrator.integrate()
-
 
 def extract_activity(results, nuclide):
     # Another thing taken from John
