@@ -11,7 +11,7 @@ os.chdir(working_directory)
 model = make_model()
 
 if not os.path.exists("depletion_results.h5"):
-    run_independent_vessel_activation(model, days=365*10, num_timesteps=50, source_rate=2e20)
+    run_independent_vessel_activation(model, days=100, num_timesteps=100, source_rate=2e20)
 
 timesteps, activities, dists = extract_activities()
 
