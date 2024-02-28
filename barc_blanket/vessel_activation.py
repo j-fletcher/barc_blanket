@@ -243,7 +243,7 @@ def extract_activities():
     
     timesteps = results.get_times()
     activities = np.empty(len(timesteps))
-    dists = np.empty(len(timesteps))
+    dists = []
 
     for i, step in enumerate(timesteps):
         materials = results.export_to_materials(i)
@@ -251,7 +251,7 @@ def extract_activities():
         vv_material = materials[2]
 
         activities[i] = vv_material.get_activity()
-        dists[i] = vv_material.get_decay_photon_energy()
+        dists.append(vv_material.get_decay_photon_energy())
 
     #activities = results.get_activity(material)
 

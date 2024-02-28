@@ -25,3 +25,15 @@ ax.set_title("Vessel Activation")
 
 # Save figure
 fig.savefig("vessel_activation.png")
+
+fig, ax = plt.subplots()
+for i in [0, 20, len(timesteps)-1]:
+    energies = dists[i].x
+    activities = dists[i].p
+    ax.plot(energies, activities, label=f"Step {i}")
+    ax.set_xlabel("Energy (MeV)")
+    ax.set_ylabel("Activity (Bq)")
+
+ax.legend()
+ax.set_title("Energy Spectrum")
+fig.savefig("energy_spectrum.png")
