@@ -1,6 +1,14 @@
 import numpy as np 
 import pandas as pd 
 
+###############################################################################
+'''
+Takes in the total excel waste data, tank ID, desired waste phase, list of all compounds from total data, 
+array of amount of individual molecules in each compound from total compounds list
+outputs the mass of each element surveyed per tank per waste phase as a dictionary
+'''
+###############################################################################
+
 def total_molecular_mass_per_molecule_dict(data,tankID,WastePhase,compounds,molecules):
     c = 12.011
     h = 1.008
@@ -10,8 +18,7 @@ def total_molecular_mass_per_molecule_dict(data,tankID,WastePhase,compounds,mole
     cl = 35.45
     f = 18.998403162
     s = 32.06
-    tl = 204.38
-    nuclides = ['C','H','O','P','N','Cl','F','S','Tl']
+    nuclides = ['C','H','O','P','N','Cl','F','S']
     elem_mass = np.array([c,h,o,p,n,cl,f,s,tl])
     compounds = compounds
     compound_mol_dict = dict(zip(compounds,molecules))
@@ -24,11 +31,12 @@ def total_molecular_mass_per_molecule_dict(data,tankID,WastePhase,compounds,mole
     nuclide_per_compound = dict(zip(nuclides,total_molecule_mass))
     return nuclide_per_compound
 
-
+###############################################################################
 '''
 Takes in the total excel waste data, tank ID, desired waste phase, and the list of total individual elements surveyed and
 outputs the mass of each element surveyed per tank per waste phase as a dictionary
 '''
+###############################################################################
 def element_masses_per_tank_per_waste_phase(data,tankID,WastePhase,elements):
     analytes = df.loc[(df['WasteSiteId'] == tankID) & (df['WastePhase'] == WastePhase),['Analyte']].values[:,0]
     elements_dict = dict(zip(elements,np.zeros(len(elements))))
@@ -38,12 +46,13 @@ def element_masses_per_tank_per_waste_phase(data,tankID,WastePhase,elements):
                                             & (df['Analyte'] == analyte),['Mass (kg)']].values[0,0]
     return elements_dict
 
-
+##################################################################################
 '''
 Takes in the total excel waste data, tank ID, desired waste phase, and
 outputs the mass of each indiviudally labled nuclide per tank per waste phase as a dictionary.
 The nuclides are reformatted so that the element symbol is first followed by the mass number to make it easier to put into openmc.
 '''
+###################################################################################
 def nuclide_masses_per_tank_waste_phase(data,tankID,WastePhase):
     analytes = df.loc[(df['WasteSiteId'] == tankID) & (df['WastePhase'] == WastePhase),['Analyte']].values[:,0]
     nuclides = []
@@ -77,7 +86,11 @@ def nuclide_masses_per_tank_waste_phase(data,tankID,WastePhase):
             nuclides_reformatted.append(new_key)
     nuclides_reformatted_dict = dict(zip(nuclides_reformatted,nuclides_mass_dict.values()))
     return nuclides_reformatted_dict
-
+###########################################################################
+'''
+Get Compounds in Tank
+'''
+###########################################################################
 def compounds_in_tank_list(data,tankID,WastePhase,compounds):
     analytes = df.loc[(df['WasteSiteId'] == tankID) & (df['WastePhase'] == WastePhase),['Analyte']].values[:,0]
     compounds_present = []
@@ -86,6 +99,12 @@ def compounds_in_tank_list(data,tankID,WastePhase,compounds):
             compounds_present.append(analyte)
     return compounds_present
 
+###########################################################################
+'''
+This Function takes creates a dictionary of the element name from a nuclide
+ex. takes in {Co60 : 1.34e-9} and outputs {Co : Co60} 
+'''
+###########################################################################
 def elements_from_nuclides(data,tankID,WastePhase):
     nuclides = nuclide_masses_per_tank_waste_phase(data,tankID,WastePhase)
     elements_separated = []
@@ -100,6 +119,7 @@ def elements_from_nuclides(data,tankID,WastePhase):
         elements_separated.append(sep_element)
         elements_separated_dict = dict(zip(elements_separated,nuclides.keys()))
     return elements_separated_dict
+###############################################
 '''
 must get objects returned from:
     nuclide_masses_per_tank_waste_phase()
@@ -108,6 +128,7 @@ must get objects returned from:
     elements_from_nuclides()
 updates compound mass and element mass accordingly to avoid double counting
 '''
+################################################
 def subtracting_nuclide_mass_from_comp_or_elements(nuclides_present,elements_present,compounds_present,elements_from_nuclides):
     double_elements = ['C','H','O','P','N','Cl','F','S']
     for substance in elements_present.keys():
