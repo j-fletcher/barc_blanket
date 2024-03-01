@@ -10,7 +10,7 @@ os.chdir(working_directory)
 
 model = make_model()
 
-if not os.path.exists("depletion_results.h5"):
+if not os.path.exists("depletion_results.h5") or True:
     run_independent_vessel_activation(model, days=100, num_timesteps=100, source_rate=2e20)
 
 # TODO: see how it's doing this

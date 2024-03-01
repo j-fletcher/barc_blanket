@@ -6,66 +6,62 @@ import numpy as np
 import os
 import pickle
 
+CROSS_SECTIONS = '/usr/local/share/xs_data/endfb80_hdf5/cross_sections.xml'
+CHAIN_FILE = '/home/zkeith/openmc_resources/chain_endfb80_sfr.xml'
+
 # Heavily based on John's stuff here: https://github.com/jlball/arc-nonproliferation/tree/master/openmc-scripts/arc-1/independent_depletion
 
 def make_model():
-    # Just quickfast snagging what Joe has to make a model
+    # Simple spherical model to test depletion
 
-    if os.path.exists('model.xml'):
-        model = openmc.Model.from_model_xml()
-    else:
-        ### MATERIALS ###
+    ### MATERIALS ###
 
-        # Vanadium alloy
-        vanadium44 = openmc.Material(name='vanadium44')
-        vanadium44.depletable = True
-        vanadium44.add_element('V', 92.0, 'wo')
-        vanadium44.add_element('Ti', 4.0, 'wo')
-        vanadium44.add_element('Cr', 4.0, 'wo')
-        vanadium44.set_density('g/cm3', 6.11)
+    # Vanadium alloy
+    vanadium44 = openmc.Material(name='vanadium44')
+    vanadium44.depletable = True
+    vanadium44.add_element('V', 92.0, 'wo')
+    vanadium44.add_element('Ti', 4.0, 'wo')
+    vanadium44.add_element('Cr', 4.0, 'wo')
+    vanadium44.set_density('g/cm3', 6.11)
 
-        materials = openmc.Materials([vanadium44])
+    #materials = openmc.Materials([vanadium44])
 
-        major_radius = 680
-        vv_thickness = 2
+    major_radius = 680
+    vv_thickness = 2
 
-        # Set up our simplified reactor
-        plasma_surface = openmc.Sphere(r=major_radius)
-        vv_surface = openmc.Sphere(r=major_radius+vv_thickness)
-        atmosphere_surface = openmc.Sphere(r=1000, boundary_type="vacuum")
+    # Set up our simplified reactor
+    plasma_surface = openmc.Sphere(r=major_radius)
+    vv_surface = openmc.Sphere(r=major_radius+vv_thickness)
+    atmosphere_surface = openmc.Sphere(r=1000, boundary_type="vacuum")
 
-        plasma_space = -plasma_surface
-        vv_space = +plasma_surface & -vv_surface
-        atmosphere_space = +vv_surface & -atmosphere_surface
+    plasma_space = -plasma_surface
+    vv_space = +plasma_surface & -vv_surface
+    atmosphere_space = +vv_surface & -atmosphere_surface
 
-        plasma_cell = openmc.Cell(name='plasma_cell', region=plasma_space, fill=None)
-        vv_cell = openmc.Cell(name='vv_cell', region=vv_space, fill=vanadium44)
-        atmosphere_cell = openmc.Cell(name='atmosphere_cell', region=atmosphere_space, fill=None)
+    plasma_cell = openmc.Cell(name='plasma_cell', region=plasma_space, fill=None)
+    vv_cell = openmc.Cell(name='vv_cell', region=vv_space, fill=vanadium44)
+    atmosphere_cell = openmc.Cell(name='atmosphere_cell', region=atmosphere_space, fill=None)
 
-        universe = openmc.Universe(cells=[plasma_cell, vv_cell, atmosphere_cell])
-        geometry = openmc.Geometry(universe)
+    universe = openmc.Universe(cells=[plasma_cell, vv_cell, atmosphere_cell])
+    geometry = openmc.Geometry(universe)
 
-        # source definition
-        point = openmc.stats.Point((0, 0, 0))
-        source = openmc.IndependentSource(space=point)
-        source.particle = 'neutron'
-        source.angle = openmc.stats.Isotropic()
-        source.energy = openmc.stats.muir(e0=14.08e6, m_rat=5, kt=20000)
+    # source definition
+    point = openmc.stats.Point((0, 0, 0))
+    source = openmc.IndependentSource(space=point)
+    source.particle = 'neutron'
+    source.angle = openmc.stats.Isotropic()
+    source.energy = openmc.stats.muir(e0=14.08e6, m_rat=5, kt=20000)
 
-        # settings' settings
-        settings = openmc.Settings(run_mode='fixed source')
-        settings.photon_transport = False
-        settings.source = source
-        settings.batches = 100
-        settings.particles = int(1e3) # modify this to shorten simulation, default was 1e6 
+    # settings' settings
+    settings = openmc.Settings(run_mode='fixed source')
+    settings.photon_transport = False
+    settings.source = source
+    settings.batches = 100
+    settings.particles = int(1e3) # modify this to shorten simulation, default was 1e6 
 
-        model = openmc.Model(materials=materials, geometry=geometry,
-                            settings=settings)
+    model = openmc.Model(geometry=geometry, settings=settings)
 
-        model.export_to_model_xml()
-
-        # Also save materials to file
-        #materials.export_to_xml()
+    model.export_to_model_xml()
 
     return model
 
@@ -84,8 +80,8 @@ def run_independent_vessel_activation(model:openmc.Model, days=365, num_timestep
         The source rate of neutrons in the model. Default is 2e20 (for a 500MW fusion reactor)
     """
 
-    openmc.config['cross_sections'] = '/home/zkeith/openmc_resources/endfb-viii.0-hdf5/cross_sections.xml'
-    openmc.config['chain_file'] = '/home/zkeith/openmc_resources/chain_endfb80_sfr.xml'
+    openmc.config['cross_sections'] = CROSS_SECTIONS
+    openmc.config['chain_file'] = CHAIN_FILE
 
     # Obtain a pointer to the vacuum vessel cell
     # TODO: there's definitely an easier way to do this
@@ -107,12 +103,6 @@ def run_independent_vessel_activation(model:openmc.Model, days=365, num_timestep
         vv_flux, vv_microxs = openmc.deplete.get_microxs_and_flux(model, [vv_cell])
         np.save(vv_flux_file, vv_flux[0])
         vv_microxs[0].to_csv(vv_microxs_file)
-        #with open(vv_flux_file, 'wb') as f:
-            #pickle.dump(vv_flux, f)
-        #    np.save(f, vv_flux)
-        #with open(vv_microxs_file, 'wb') as f:
-            #pickle.dump(vv_microxs, f)
-        #vv_microxs.to_csv()
 
     # TODO: programmatically calculate volume of cells
     # At the moment assuming R = 680 cm and a1 = 125 cm, a2 = 127 cm
@@ -140,8 +130,8 @@ def run_independent_vessel_activation(model:openmc.Model, days=365, num_timestep
 
 def extract_activities(model:openmc.Model):
     # Another thing taken from John: https://github.com/jlball/arc-nonproliferation/commit/04de395e19fd30344d9e5b2366918e149593b5d0
-    openmc.config['cross_sections'] = '/home/zkeith/openmc_resources/endfb-viii.0-hdf5/cross_sections.xml'
-    openmc.config['chain_file'] = '/home/zkeith/openmc_resources/chain_endfb80_sfr.xml'
+    openmc.config['cross_sections'] = CROSS_SECTIONS
+    openmc.config['chain_file'] = CHAIN_FILE
     
     material = '0' # TODO: figure out how to get this properly
 
