@@ -13,12 +13,14 @@ model = make_model()
 if not os.path.exists("depletion_results.h5"):
     run_independent_vessel_activation(model, days=100, num_timesteps=100, source_rate=2e20)
 
-timesteps, activities, dists = extract_activities()
+# TODO: see how it's doing this
+timesteps, activities = extract_activities(model)
 
 # Plot the activities over time
 
 fig, ax = plt.subplots()
-ax.plot(timesteps, activities)
+#ax.plot(timesteps, activities)
+ax.plot(timesteps, activities[1])
 ax.set_xlabel("Time (days)")
 ax.set_ylabel("Activity (Bq)")
 ax.set_title("Vessel Activation")
@@ -26,13 +28,13 @@ ax.set_title("Vessel Activation")
 # Save figure
 fig.savefig("vessel_activation.png")
 
-fig, ax = plt.subplots()
-for i in [0, 20, len(timesteps)-1]:
-    energies = dists[i].x
-    activities = dists[i].p
-    ax.plot(energies, activities, label=f"Step {i}")
-    ax.set_xlabel("Energy (MeV)")
-    ax.set_ylabel("Activity (Bq)")
+# fig, ax = plt.subplots()
+# for i in [0, 20, len(timesteps)-1]:
+#     energies = dists[i].x
+#     activities = dists[i].p
+#     ax.scatter(energies, activities, label=f"Step {i}")
+#     ax.set_xlabel("Energy (MeV)")
+#     ax.set_ylabel("Activity (Bq)")
 
 ax.legend()
 ax.set_title("Energy Spectrum")
