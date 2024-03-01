@@ -57,7 +57,7 @@ def make_model():
     settings.photon_transport = False
     settings.source = source
     settings.batches = 100
-    settings.particles = int(1e3) # modify this to shorten simulation, default was 1e6 
+    settings.particles = int(1e4) # modify this to shorten simulation, default was 1e6 
 
     model = openmc.Model(geometry=geometry, settings=settings)
 
@@ -154,9 +154,25 @@ def extract_activities(model:openmc.Model):
     print("second fill")
     print(vv_cell.fill)
     activities = results.get_activity(vv_cell.fill)
-    print("activities")
-    print(activities)
+    #print("activities")
+    #print(activities)
+    
 
     #activities = results.get_activity(material)
 
     return timesteps, activities#, dists
+
+def extract_nuclides(model:openmc.Model):
+    openmc.config['cross_sections'] = CROSS_SECTIONS
+    openmc.config['chain_file'] = CHAIN_FILE
+
+    results = openmc.deplete.Results("depletion_results.h5")
+    timesteps = results.get_times()
+    vv_cell = next(iter(model._cells_by_name["vv_cell"]))
+    
+    nuc_atoms = {}
+    for nuclide_tuple in vv_cell.fill.nuclides:
+        nuclide_name = nuclide_tuple[0]
+        nuc_atoms[nuclide_name] = results.get_atoms(vv_cell.fill, nuc=nuclide_name)[1]
+
+    return timesteps, nuc_atoms
