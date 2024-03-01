@@ -1,5 +1,6 @@
 import numpy as np 
 import pandas as pd 
+import openmc
 
 ###############################################################################
 '''
@@ -10,20 +11,20 @@ outputs the mass of each element surveyed per tank per waste phase as a dictiona
 ###############################################################################
 
 def total_molecular_mass_per_molecule_dict(data,tankID,WastePhase,compounds,molecules):
-    c = 12.011
-    h = 1.008
-    o = 15.999
-    p = 30.973761998
-    n = 14.007
-    cl = 35.45
-    f = 18.998403162
-    s = 32.06
+    C = openmc.data.atomic_weight('C')
+    H = openmc.data.atomic_weight('H')
+    O = openmc.data.atomic_weight('O')
+    P = openmc.data.atomic_weight('P')
+    N = openmc.data.atomic_weight('N')
+    Cl = openmc.data.atomic_weight('Cl')
+    F = openmc.data.atomic_weight('F')
+    S = openmc.data.atomic_weight('S')
     nuclides = ['C','H','O','P','N','Cl','F','S']
-    elem_mass = np.array([c,h,o,p,n,cl,f,s,tl])
+    elem_mass = np.array([C,H,O,P,N,Cl,F,S])
     compounds = compounds
     compound_mol_dict = dict(zip(compounds,molecules))
     total_compound_molecules = np.zeros((9))
-    analytes = data.loc[(data['WasteSiteId'] == tankID) & (data['WastePhase'] == WastePhase),['Analyte','WastePhase Volume (L)']].values[:,0]
+    analytes = data.loc[(data['WasteSiteId'] == tankID) & (data['WastePhase'] == WastePhase),['Analyte'].values[:,0]
     for compound in analytes:
         if compound in compounds:
            total_compound_molecules += compound_mol_dict[compound]
