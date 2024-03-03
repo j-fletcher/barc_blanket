@@ -12,3 +12,5 @@ dependencies:
   - dash
   - plotly
   - pip
+  - yaml
+  - optuna
