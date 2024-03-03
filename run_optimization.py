@@ -3,7 +3,8 @@ import sys
 import yaml
 import optuna
 
-from barc_blanket.optimize_geometry import make_model, evaluate_metric
+from barc_blanket.models.simple_geometry import make_model
+from barc_blanket.optimize_geometry import evaluate_metric
 
 def objective(trial, sweep_config):
     """ Objective function for the optimization
