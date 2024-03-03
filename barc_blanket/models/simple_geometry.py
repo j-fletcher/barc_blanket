@@ -17,13 +17,14 @@ DEFAULT_PARAMETERS = {
     'slurry_ratio': 0.01         # wt% slurry in the burner blanket
 }
 
-def make_model(new_model_config):
+def make_model(new_model_config=None):
     """Create an OpenMC model using the given configuration
     
     Parameters:
     ----------
-    new_model_config : dict
-        Dictionary containing the model configuration
+    new_model_config : dict, optional
+        Dictionary containing the model configuration.
+        If not provided, the values listed in DEFAULT_PARAMETERS will be used.
 
     Returns:
     -------
@@ -31,11 +32,13 @@ def make_model(new_model_config):
         An OpenMC model object
     """
 
-    # Extract model parameters from new config, fall back to defaults if not present
-    model_config = new_model_config.copy()
-    for key in DEFAULT_PARAMETERS:
-        if key not in new_model_config:
-            model_config[key] = DEFAULT_PARAMETERS[key]
+    if new_model_config is None:
+        model_config = DEFAULT_PARAMETERS
+    else:
+        model_config = new_model_config.copy()
+        for key in DEFAULT_PARAMETERS:
+            if key not in new_model_config:
+                model_config[key] = DEFAULT_PARAMETERS[key]
 
     ######################
     ## Define Materials ##
