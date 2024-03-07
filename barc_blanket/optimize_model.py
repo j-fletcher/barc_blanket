@@ -46,11 +46,8 @@ def tritium_breeding_ratio(model:openmc.Model):
     """
 
     # Run the model
-    try:
-        final_statepoint = openmc.StatePoint("statepoint.50.h5")
-    except FileNotFoundError:
-        model.run()
-        final_statepoint = openmc.StatePoint(model.settings.output)
+    model.run()
+    final_statepoint = openmc.StatePoint("statepoint.50.h5")
 
     # Get tally results
     # TODO: do this programmatically instead of hardcoded here
