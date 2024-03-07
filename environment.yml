@@ -12,3 +12,4 @@ dependencies:
   - dash
   - plotly
   - pip
+  - scipy ==1.11.4

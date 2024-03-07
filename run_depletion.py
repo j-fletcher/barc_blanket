@@ -12,7 +12,7 @@ model = make_model()
 
 rerun_depletion = True
 if not os.path.exists("depletion_results.h5") or rerun_depletion:
-    run_independent_vessel_activation(model, days=100, num_timesteps=10, source_rate=2e20)
+    run_independent_vessel_activation(model, days=365, num_timesteps=100, source_rate=2e20)
 
 
 timesteps, nuclides = extract_nuclides(model)
@@ -34,19 +34,19 @@ fig.savefig("nuclide_concentration.png")
 
 
 # # TODO: see how it's doing this
-# timesteps, activities = extract_activities(model)
+timesteps, activities = extract_activities(model)
 
 # # Plot the activities over time
 
-# fig, ax = plt.subplots()
-# #ax.plot(timesteps, activities)
-# ax.plot(timesteps, activities[1])
-# ax.set_xlabel("Time (days)")
-# ax.set_ylabel("Activity (Bq)")
-# ax.set_title("Vessel Activation")
+fig, ax = plt.subplots()
+#ax.plot(timesteps, activities)
+ax.plot(timesteps, activities[1])
+ax.set_xlabel("Time (days)")
+ax.set_ylabel("Activity (Bq)")
+ax.set_title("Vessel Activation")
 
-# # Save figure
-# fig.savefig("vessel_activation.png")
+# Save figure
+fig.savefig("vessel_activation.png")
 
 # # fig, ax = plt.subplots()
 # # for i in [0, 20, len(timesteps)-1]:
