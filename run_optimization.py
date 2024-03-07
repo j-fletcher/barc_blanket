@@ -65,14 +65,14 @@ def objective(trial, sweep_config):
     
     return metric_val
 
-def main(sweep_config_path, num_trials=1):
+def main(sweep_directory, num_trials=1):
     """Run a parameter sweep using Optuna
 
     Parameters:
     ----------
-    sweep_config_path : str
-        Path to the sweep configuration file
-        This configuration file should be a YAML file with the following structure:
+    sweep_directory : str
+        Relative path to directory where all the sweep input and output files are stored.
+        MUST include a 'sweep_config.yaml' with the following structure:
         ```
         metric: metric name
         direction: minimize or maximize
@@ -96,11 +96,18 @@ def main(sweep_config_path, num_trials=1):
         Number of trials to run. This will add num_trials to the existing trials in the sweep_results.db
     """
 
+    # Change to the sweep directory
+    try:
+        os.chdir(sweep_directory)
+    except FileNotFoundError:
+        print(f"Directory {sweep_directory} not found")
+        sys.exit(1)
+    
     # Load the config
-    sweep_config = yaml.safe_load(open(sweep_config_path, "r"))
+    sweep_config = yaml.safe_load(open(f"sweep_config.yaml", "r"))
 
     # Create storage for trial results that can support concurrent writes
-    sweep_results_path = f"{sweep_config_path}/sweep_results.db"
+    sweep_results_path = f"sweep_results.db"
     lock_obj = optuna.storages.JournalFileOpenLock(sweep_results_path)
     storage = optuna.storages.JournalStorage(
         optuna.storages.JournalFileStorage(sweep_results_path, lock_obj=lock_obj)
@@ -108,7 +115,7 @@ def main(sweep_config_path, num_trials=1):
 
     study = optuna.create_study(
         storage=storage, 
-        study_name=f"{sweep_config_path}",
+        study_name=f"{sweep_directory}",
         direction=sweep_config['direction'],
         load_if_exists=True
     )
@@ -122,5 +129,5 @@ if __name__ == "__main__":
     elif len(sys.argv) == 3:
         main(sys.argv[1], int(sys.argv[2]))
     else:
-        print("Usage: python run_optimization.py <sweep_config_path> <num_trials>")
+        print("Usage: python run_optimization.py <relative_sweep_directory> <num_trials>")
         sys.exit(1)
