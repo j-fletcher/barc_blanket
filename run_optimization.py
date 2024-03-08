@@ -5,6 +5,7 @@ import optuna
 
 from barc_blanket.models.simple_geometry import make_model
 from barc_blanket.optimize_model import evaluate_metric
+from barc_blanket.utilities import working_directory
 
 def objective(trial, sweep_config):
     """ Objective function for the optimization
@@ -97,30 +98,26 @@ def main(sweep_directory, num_trials=1):
     """
 
     # Change to the sweep directory
-    try:
-        os.chdir(sweep_directory)
-    except FileNotFoundError:
-        print(f"Directory {sweep_directory} not found")
-        sys.exit(1)
+    with working_directory(sweep_directory):
     
-    # Load the config
-    sweep_config = yaml.safe_load(open(f"sweep_config.yaml", "r"))
+        # Load the config
+        sweep_config = yaml.safe_load(open(f"sweep_config.yaml", "r"))
 
-    # Create storage for trial results that can support concurrent writes
-    sweep_results_path = f"sweep_results.db"
-    lock_obj = optuna.storages.JournalFileOpenLock(sweep_results_path)
-    storage = optuna.storages.JournalStorage(
-        optuna.storages.JournalFileStorage(sweep_results_path, lock_obj=lock_obj)
-    )
+        # Create storage for trial results that can support concurrent writes
+        sweep_results_path = f"sweep_results.db"
+        lock_obj = optuna.storages.JournalFileOpenLock(sweep_results_path)
+        storage = optuna.storages.JournalStorage(
+            optuna.storages.JournalFileStorage(sweep_results_path, lock_obj=lock_obj)
+        )
 
-    study = optuna.create_study(
-        storage=storage, 
-        study_name=f"{sweep_directory}",
-        direction=sweep_config['direction'],
-        load_if_exists=True
-    )
+        study = optuna.create_study(
+            storage=storage, 
+            study_name=f"{sweep_directory}",
+            direction=sweep_config['direction'],
+            load_if_exists=True
+        )
 
-    study.optimize(lambda trial: objective(trial, sweep_config), n_trials=num_trials)
+        study.optimize(lambda trial: objective(trial, sweep_config), n_trials=num_trials)
 
 
 if __name__ == "__main__":
