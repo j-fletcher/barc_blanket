@@ -63,9 +63,9 @@ def nuclide_masses_per_tank_waste_phase(data,tankID,WastePhase):
         if analytes[i][0].isdigit():
            if ((analytes[i][1].isdigit()) or ((analytes[i][1].isalpha()))):
                nuclides.append(analytes[i])
-               masses.append(df.loc[(df['WasteSiteId'] == tankID) & (df['WastePhase'] == WastePhase)& (df['Analyte'] == analytes[i]),['Mass (kg)']].values[0,0])
+               masses.append(df.loc[(df['WasteSiteId'] == tankID) & (df['WastePhase'] == WastePhase)& (df['Analyte'] == analytes[i]),['Mass (kg)']].values.sum())
     nuclides_mass_dict = dict(zip(nuclides,masses))
-    for analyte in analytes:
+    for analyte in nuclides_mass_dict:
         if analyte[0].isdigit():
             digits = ''
             letters = ''
