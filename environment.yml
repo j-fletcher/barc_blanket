@@ -1,0 +1,14 @@
+name: barc-blanket-env
+
+channels:
+  - conda-forge
+  - defaults
+
+dependencies:
+  - numpy
+  - pandas
+  - matplotlib
+  - openmc
+  - dash
+  - plotly
+  - pip
