@@ -137,7 +137,7 @@ settings = openmc.Settings(run_mode='fixed source')
 settings.photon_transport = False
 settings.source = source
 settings.batches = 50
-settings.particles = int(1e5) # modify this to shorten simulation, default was 1e6 
+settings.particles = int(1e4) # modify this to shorten simulation, default was 1e6 
 settings.statepoint = {'batches': [
     5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100]}
 settings.output = {'tallies': True}
@@ -146,7 +146,8 @@ settings.output = {'tallies': True}
 
 burner_cell_filter = openmc.CellFilter(blanket2_cell) # just burner blanket
 tbr_cell_filter = openmc.CellFilter([blanket1_cell,blanket2_cell]) # includes both fusion and burner
-energy_filter = openmc.EnergyFilter(np.logspace(0,7)) # 1eV to 100MeV
+energy_filter = openmc.EnergyFilter(np.logspace(0,8)) # 1eV to 100MeV
+neutron_filter = openmc.ParticleFilter('neutron', filter_id=None)
 
 # mesh tally - flux
 
@@ -163,7 +164,7 @@ tally2.scores = ["(n,Xt)"]
 #power deposition - heating-local
 
 tally3 = openmc.Tally(tally_id=3, name="heating_burner")
-tally3.filters = [burner_cell_filter]
+tally3.filters = [burner_cell_filter,energy_filter]
 tally3.scores = ["heating-local"]
 # %% 
 
@@ -183,5 +184,6 @@ model = openmc.Model(materials=materials, geometry=geometry,
                      settings=settings, tallies=tallies)
 
 # Export and run model
-model.export_to_model_xml()
-model.run(threads=8, geometry_debug=True)
+if __name__=="__main__":
+    model.export_to_model_xml()
+    model.run(threads=8, geometry_debug=True)
