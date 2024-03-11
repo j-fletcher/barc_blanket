@@ -129,38 +129,43 @@ def run_independent_vessel_activation(model:openmc.Model, days=365, num_timestep
     vv_integrator.integrate()
 
 def extract_activities(model:openmc.Model):
+    # Get the total activity in the vacuum vessel cell from depletion results
     # Another thing taken from John: https://github.com/jlball/arc-nonproliferation/commit/04de395e19fd30344d9e5b2366918e149593b5d0
     openmc.config['cross_sections'] = CROSS_SECTIONS
     openmc.config['chain_file'] = CHAIN_FILE
-    
-    material = '0' # TODO: figure out how to get this properly
 
     # load results
     results = openmc.deplete.Results("depletion_results.h5")
     
     timesteps = results.get_times()
     activities = np.empty(len(timesteps))
-    dists = []
-
-    # for i, step in enumerate(timesteps):
-    #     materials = results.export_to_materials(i)
-
-    #     vv_material = materials[0]
-
-    #     activities[i] = vv_material.get_activity()
-    #     dists.append(vv_material.get_decay_photon_energy())
+    
 
     vv_cell = next(iter(model._cells_by_name["vv_cell"]))
     print("second fill")
     print(vv_cell.fill)
     activities = results.get_activity(vv_cell.fill)
-    #print("activities")
-    #print(activities)
+
+    return timesteps, activities
+
+def extract_decay_photon_energies():
+    # Get the decay photon energies from the depletion results
     
+    results = openmc.deplete.Results("depletion_results.h5")
+    timesteps = results.get_times()
+    activities = np.empty(len(timesteps))
 
-    #activities = results.get_activity(material)
+    dists = []
 
-    return timesteps, activities#, dists
+    for i, step in enumerate(timesteps):
+        materials = results.export_to_materials(i)
+
+        vv_material = materials[0]
+
+        activities[i] = vv_material.get_activity()
+        dists.append(vv_material.get_decay_photon_energy())
+
+    return timesteps, dists
 
 def extract_nuclides(model:openmc.Model):
     openmc.config['cross_sections'] = CROSS_SECTIONS
