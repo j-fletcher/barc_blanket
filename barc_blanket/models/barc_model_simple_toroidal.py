@@ -1,4 +1,5 @@
 # %%
+import os
 import openmc
 import openmc_data_downloader as odd
 import numpy as np
@@ -173,12 +174,16 @@ materials = openmc.Materials([dt_plasma,flibe,inconel718,eurofer])
 geometry = openmc.Geometry(universe)
 tallies = openmc.Tallies([tally1,tally2,tally3])    
 
-# Download cross cection data for materials
-materials.download_cross_section_data(
-        libraries=['ENDFB-7.1-NNDC', 'TENDL-2019'],
-        set_OPENMC_CROSS_SECTIONS=True,
-        particles=["neutron"],
-    )
+# Download cross cection data for materials if needed, otherwise use local data file
+xsection_path = os.environ.get("OPENMC_CROSS_SECTIONS")
+if xsection_path:
+    pass
+else:
+    materials.download_cross_section_data(
+            libraries=['ENDFB-7.1-NNDC', 'TENDL-2019'],
+            set_OPENMC_CROSS_SECTIONS=True,
+            particles=["neutron"],
+        )
 
 model = openmc.Model(materials=materials, geometry=geometry,
                      settings=settings, tallies=tallies)
