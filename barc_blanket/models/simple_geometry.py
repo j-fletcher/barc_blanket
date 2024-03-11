@@ -183,5 +183,6 @@ model = openmc.Model(materials=materials, geometry=geometry,
                      settings=settings, tallies=tallies)
 
 # Export and run model
-model.export_to_model_xml()
-model.run(threads=8, geometry_debug=True)
+if __name__=="__main__":
+    model.export_to_model_xml()
+    model.run(threads=8, geometry_debug=True)
