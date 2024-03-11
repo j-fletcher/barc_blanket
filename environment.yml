@@ -13,3 +13,5 @@ dependencies:
   - plotly
   - pip
   - scipy ==1.11.4
+  - pip:
+    - openmc_regular_mesh_plotter
