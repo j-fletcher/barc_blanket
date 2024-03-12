@@ -30,7 +30,7 @@ import yaml
 import optuna
 import argparse
 
-from barc_blanket.models.simple_geometry import make_model
+from barc_blanket.models.barc_model_simple_toroidal import make_model
 from barc_blanket.optimize_model import evaluate_metric
 from barc_blanket.utilities import working_directory
 
