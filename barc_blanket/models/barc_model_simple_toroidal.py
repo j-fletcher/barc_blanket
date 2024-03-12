@@ -1,3 +1,4 @@
+import os
 import openmc
 import numpy as np
 
