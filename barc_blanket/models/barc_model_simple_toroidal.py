@@ -18,7 +18,10 @@ DEFAULT_PARAMETERS = {
     'bv_thickness': 5,           # How thick the burner vessel is
 
     'li6_enrichment': 0.076,     # atom% enrichment of Li6 in the FLiBe
-    'slurry_ratio': 0.01         # atom% slurry in the burner blanket
+    'slurry_ratio': 0.01,        # atom% slurry in the burner blanket
+
+    'batches': 50,               # Number of batches to run
+    'particles': int(1e5),       # Number of particles per batch
 }
 
 def make_model(new_model_config=None):
@@ -48,11 +51,12 @@ def make_model(new_model_config=None):
     ## Assign Materials##
     #####################
 
-    plasma_material = dt_plasma
-    first_wall_material = tungsten
-    vv_material = v4cr4ti
-    blanket_material = burner_mixture(model_config['slurry_ratio'], flibe)
-    bv_material = v4cr4ti
+    # Make copies of the materials so that we can modify them without affecting other scripts
+    plasma_material = dt_plasma()
+    first_wall_material = tungsten()
+    vv_material = v4cr4ti()
+    blanket_material = burner_mixture(model_config['slurry_ratio'], flibe(model_config['li6_enrichment']))
+    bv_material = v4cr4ti()
     
     #####################
     ## Define Geometry ##

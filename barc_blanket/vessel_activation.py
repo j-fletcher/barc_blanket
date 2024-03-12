@@ -9,7 +9,7 @@ from barc_blanket.utilities import CROSS_SECTIONS, CHAIN_FILE
 
 # Heavily based on John's stuff here: https://github.com/jlball/arc-nonproliferation/tree/master/openmc-scripts/arc-1/independent_depletion
 
-def run_independent_vessel_activation(model:openmc.Model, model_config, days=365, num_timesteps=50, source_rate=3.6e20):
+def run_independent_vessel_activation(model:openmc.Model, days=365, num_timesteps=50, source_rate=3.6e20):
     """ Run the vessel activation after a certain number of days.
 
     Parameters:
@@ -50,12 +50,6 @@ def run_independent_vessel_activation(model:openmc.Model, model_config, days=365
         vv_flux, vv_microxs = openmc.deplete.get_microxs_and_flux(model, [vv_cell])
         np.save(vv_flux_file, vv_flux[0])
         vv_microxs[0].to_csv(vv_microxs_file)
-
-    # TODO: programmatically calculate volume of cells
-    # At the moment assuming R = 680 cm and a1 = 125 cm, a2 = 127 cm
-    #vv_cell.fill.volume = (2*np.pi*680) * (np.pi*127**2 - np.pi*125**2)
-    vv_cell.fill.volume = (4/3) * np.pi * (682**3 - 680**3)
-    print(vv_cell.fill)
 
     # Perform depletion (CHECK NORMALIZATION MODE)
     vv_operator = openmc.deplete.IndependentOperator(openmc.Materials([vv_cell.fill]),
