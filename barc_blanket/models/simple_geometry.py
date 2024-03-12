@@ -1,6 +1,7 @@
-# %%
 import openmc
 import numpy as np
+
+from materials import dt_plasma, flibe, enriched_flibe, burner_mixture, v4cr4ti, tungsten
 
 # Default model parameters
 # TODO: this all assumes a circular cross-section, which is not necessarily the case
@@ -10,8 +11,9 @@ DEFAULT_PARAMETERS = {
     'major_radius': 680,         # All dimensions are in cm
     'plasma_minor_radius': 120,
     'sol_width': 5,
+    'first_wall_thickness': 1,   # How thick the plasma facing material is
     'vv_thickness': 2,           # How thick the wall of the vacuum vessel is
-    'fusion_blanket_width': 15,  # Width of the material in the fusion blanket
+    'fusion_blanket_width': 20,  # Width of the material in the fusion blanket
     'burner_blanket_width': 100, # Width of the material in the burner blanket
     'li6_enrichment': 0.076,     # atom% enrichment of Li6 in the FLiBe
     'slurry_ratio': 0.01         # wt% slurry in the burner blanket
@@ -40,66 +42,16 @@ def make_model(new_model_config=None):
             if key not in new_model_config:
                 model_config[key] = DEFAULT_PARAMETERS[key]
 
-    ######################
-    ## Define Materials ##
-    ######################
+    #####################
+    ## Assign Materials##
+    #####################
 
-    # Plasma
-    dt_plasma = openmc.Material(name='dt_plasma')
-    dt_plasma.add_nuclide('H2', 1.0)
-    dt_plasma.add_nuclide('H3', 1.0)
-    dt_plasma.set_density('g/cm3', 1e-5)
-
-    # FLIBE
-    flibe = openmc.Material(name="flibe")
-    flibe.add_element("Li", 2.0, "ao", 
-                      enrichment=model_config['li6_enrichment'], 
-                      enrichment_target="Li6", 
-                      enrichment_type="ao")
-    flibe.add_element("Be", 1.0, "ao")
-    flibe.add_element("F", 4.0, "ao")
-    flibe.set_density("g/cm3", 1.94)
-
-    #TODO: add tank contents
-
-    # Inconel 718 -
-    inconel718 = openmc.Material(name='inconel718')
-    inconel718.add_element('Ni', 53.0, 'wo')
-    inconel718.add_element('Cr', 19.06, 'wo')
-    inconel718.add_element('Nb', 5.08, 'wo')
-    inconel718.add_element('Mo', 3.04, 'wo')
-    inconel718.add_element('Ti', 0.93, 'wo')
-    inconel718.add_element('Al', 0.52, 'wo')
-    inconel718.add_element('Co', 0.11, 'wo')
-    inconel718.add_element('Cu', 0.02, 'wo')
-    inconel718.add_element('C', 0.021, 'wo')
-    inconel718.add_element('Fe', 18.15, 'wo')
-    inconel718.set_density('g/cm3', 8.19)
-
-    # Eurofer
-    eurofer = openmc.Material(name='eurofer')
-    eurofer.add_element('Cr', 8.99866, 'wo')
-    eurofer.add_element('C', 0.109997, 'wo')
-    eurofer.add_element('W', 1.5, 'wo')
-    eurofer.add_element('V', 0.2, 'wo')
-    eurofer.add_element('Ta', 0.07, 'wo')
-    eurofer.add_element('B', 0.001, 'wo')
-    eurofer.add_element('N', 0.03, 'wo')
-    eurofer.add_element('O', 0.01, 'wo')
-    eurofer.add_element('S', 0.001, 'wo')
-    eurofer.add_element('Fe', 88.661, 'wo')
-    eurofer.add_element('Mn', 0.4, 'wo')
-    eurofer.add_element('P', 0.005, 'wo')
-    eurofer.add_element('Ti', 0.01, 'wo')
-    eurofer.set_density('g/cm3', 7.798)
-
-    # V-4Cr-4Ti - pure -(from Segantin TRE https://github.com/SteSeg/tokamak_radiation_environment)
-    v4cr4ti = openmc.Material(name='v4cr4ti')
-    v4cr4ti.add_element('V', 0.92, 'wo')
-    v4cr4ti.add_element('Cr', 0.04, 'wo')
-    v4cr4ti.add_element('Ti', 0.04, 'wo')
-    v4cr4ti.set_density('g/cm3', 6.06)
-
+    plasma_material = dt_plasma
+    first_wall_material = tungsten
+    vv_material = v4cr4ti
+    fusion_material = enriched_flibe(model_config['li6_enrichment'])
+    burner_material = burner_mixture(model_config['slurry_ratio'])
+    
     #####################
     ## Define Geometry ##
     #####################
