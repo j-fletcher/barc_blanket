@@ -11,59 +11,7 @@ CHAIN_FILE = '/home/zkeith/openmc_resources/chain_endfb80_sfr.xml'
 
 # Heavily based on John's stuff here: https://github.com/jlball/arc-nonproliferation/tree/master/openmc-scripts/arc-1/independent_depletion
 
-def make_model():
-    # Simple spherical model to test depletion
 
-    ### MATERIALS ###
-
-    # Vanadium alloy
-    vanadium44 = openmc.Material(name='vanadium44')
-    vanadium44.depletable = True
-    vanadium44.add_element('V', 92.0, 'wo')
-    vanadium44.add_element('Ti', 4.0, 'wo')
-    vanadium44.add_element('Cr', 4.0, 'wo')
-    vanadium44.set_density('g/cm3', 6.11)
-
-    #materials = openmc.Materials([vanadium44])
-
-    major_radius = 680
-    vv_thickness = 2
-
-    # Set up our simplified reactor
-    plasma_surface = openmc.Sphere(r=major_radius)
-    vv_surface = openmc.Sphere(r=major_radius+vv_thickness)
-    atmosphere_surface = openmc.Sphere(r=1000, boundary_type="vacuum")
-
-    plasma_space = -plasma_surface
-    vv_space = +plasma_surface & -vv_surface
-    atmosphere_space = +vv_surface & -atmosphere_surface
-
-    plasma_cell = openmc.Cell(name='plasma_cell', region=plasma_space, fill=None)
-    vv_cell = openmc.Cell(name='vv_cell', region=vv_space, fill=vanadium44)
-    atmosphere_cell = openmc.Cell(name='atmosphere_cell', region=atmosphere_space, fill=None)
-
-    universe = openmc.Universe(cells=[plasma_cell, vv_cell, atmosphere_cell])
-    geometry = openmc.Geometry(universe)
-
-    # source definition
-    point = openmc.stats.Point((0, 0, 0))
-    source = openmc.IndependentSource(space=point)
-    source.particle = 'neutron'
-    source.angle = openmc.stats.Isotropic()
-    source.energy = openmc.stats.muir(e0=14.08e6, m_rat=5, kt=20000)
-
-    # settings' settings
-    settings = openmc.Settings(run_mode='fixed source')
-    settings.photon_transport = False
-    settings.source = source
-    settings.batches = 100
-    settings.particles = int(1e4) # modify this to shorten simulation, default was 1e6 
-
-    model = openmc.Model(geometry=geometry, settings=settings)
-
-    model.export_to_model_xml()
-
-    return model
 
 def run_independent_vessel_activation(model:openmc.Model, days=365, num_timesteps=50, source_rate=2e20):
     """ Run the vessel activation after a certain number of days.
@@ -85,7 +33,7 @@ def run_independent_vessel_activation(model:openmc.Model, days=365, num_timestep
 
     # Obtain a pointer to the vacuum vessel cell
     # TODO: there's definitely an easier way to do this
-    vv_cell = next(iter(model._cells_by_name["vv_cell"]))
+    vv_cell = next(iter(model._cells_by_name["inboard_vv_cell"]))
 
     # Check if flux and microscopic cross sections are present.
     # If not, calculate them
