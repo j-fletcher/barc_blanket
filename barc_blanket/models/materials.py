@@ -89,8 +89,23 @@ tank_contents.add_nuclide('U238', 0.9928)
 tank_contents.set_density('g/cm3', 19.1)
 
 # Tank slurry contents
-def burner_mixture(slurry_ratio):
-    """Create a mixture of flibe and tank contents for the burner blanket"""
+def burner_mixture(slurry_ratio, flibe=flibe):
+    """Create a mixture of flibe and tank contents for the burner blanket
+    
+    Parameters:
+    ----------
+    slurry_ratio : float
+        The weight percent of slurry in the burner blanket
+    flibe : openmc.Material, optional
+        The FLiBe material to use in the mixture. Default is the standard FLiBe material.
+        Can pass in enriched flibe if desired
+
+    Returns:
+    -------
+    burner_mixture : openmc.Material
+        The mixture of FLiBe and tank contents
+    
+    """
     flibe_ao = 1 - slurry_ratio
 
     burner_mixture = openmc.Material.mix_materials(
