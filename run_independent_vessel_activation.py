@@ -5,16 +5,16 @@ from barc_blanket.utilities import working_directory
 from barc_blanket.models.barc_model_simple_toroidal import make_model
 
 # Create a place to put all the files we'll be working with for depletion
-with working_directory("dose_calculation"):
+with working_directory("independent_vessel_activation"):
 
-    model_config = {"batches": 5,
-                    "particles": 100,
+    model_config = {"batches": 10,
+                    "particles": 1000,
                     "slurry_ratio": 0}
     model = make_model(model_config)
 
     rerun_depletion = True
     if not os.path.exists("depletion_results.h5") or rerun_depletion:
-        run_independent_vessel_activation(model, days=365, num_timesteps=100, source_rate=2e20)
+        run_independent_vessel_activation(model, days=365, num_timesteps=100)
 
     timesteps, nuclides = extract_nuclides(model)
 
@@ -35,13 +35,16 @@ with working_directory("dose_calculation"):
 
 
     # # TODO: see how it's doing this
-    timesteps, activities = extract_activities(model)
+    timesteps, vv_activities = extract_activities(model, "vv_cell")
+    timesteps, bv_activities = extract_activities(model, "bv_cell")
 
     # # Plot the activities over time
 
     fig, ax = plt.subplots()
     #ax.plot(timesteps, activities)
-    ax.plot(timesteps, activities[1])
+    ax.plot(timesteps, vv_activities[1], label="Vacuum Vessel")
+    ax.plot(timesteps, bv_activities[1], label="Blanket Vessel")
+    ax.legend()
     ax.set_xlabel("Time (days)")
     ax.set_ylabel("Activity (Bq)")
     ax.set_title("Vessel Activation")

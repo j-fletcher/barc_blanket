@@ -31,7 +31,7 @@ import openmc.deplete
 import matplotlib.pyplot as plt
 from matplotlib.colors import LogNorm
 
-from barc_blanket.vessel_activation import CHAIN_FILE, CROSS_SECTIONS
+from barc_blanket.vessel_activation import CHAIN_FILE, CROSS_SECTIONS, extract_activated_model
 from barc_blanket.utilities import working_directory
 
 openmc.config['cross_sections'] = CROSS_SECTIONS
@@ -41,8 +41,6 @@ openmc.config['chain_file'] = CHAIN_FILE
 # TODO: Implement with context switcher
 
 with working_directory("dose_calculation"):
-
-
     # Load model
 
     # Create decay gamma simulation

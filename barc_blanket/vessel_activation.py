@@ -31,30 +31,34 @@ def run_independent_vessel_activation(model:openmc.Model, days=365, num_timestep
 
     # Obtain a pointer to the vacuum vessel cell
     vv_cell = next(iter(model._cells_by_name["vv_cell"]))
-    # TODO: add activation of burner cell
-    #bv_cell = next(iter(model._cells_by_name["bv_cell"]))
+    bv_cell = next(iter(model._cells_by_name["bv_cell"]))
 
     # Check if flux and microscopic cross sections are present.
     # If not, calculate them
     # Otherwise, load them from file
-    vv_flux_file = 'vv_cell.npy'
-    vv_microxs_file = 'vv_cell_microxs.csv'
-    if os.path.exists(vv_flux_file) and os.path.exists(vv_microxs_file):
-        with open(vv_flux_file, 'rb') as f:
-            # pickle.load(f)
-            vv_flux = [np.load(vv_flux_file)]#pickle.load(f)
+    fluxes_file = 'fluxes.npy'
+    # TODO: should be able to programmatically put all the microxs in one file, but for now we'll just do it separately
+    vv_microxs_file = 'vv_microxs.csv'
+    bv_microxs_file = 'bv_microxs.csv'
+    if os.path.exists(fluxes_file) and os.path.exists(vv_microxs_file) and os.path.exists(bv_microxs_file):
+        with open(fluxes_file, 'rb') as f:
+            fluxes = np.load(fluxes_file)
         with open(vv_microxs_file, 'rb') as f:
-            #vv_microxs = pickle.load(f)
-            vv_microxs = [openmc.deplete.MicroXS.from_csv(vv_microxs_file)]
+            vv_microxs = openmc.deplete.MicroXS.from_csv(vv_microxs_file)
+        with open(bv_microxs_file, 'rb') as f:
+            bv_microxs = openmc.deplete.MicroXS.from_csv(bv_microxs_file)
     else:
-        vv_flux, vv_microxs = openmc.deplete.get_microxs_and_flux(model, [vv_cell])
-        np.save(vv_flux_file, vv_flux[0])
-        vv_microxs[0].to_csv(vv_microxs_file)
+        fluxes, microxs = openmc.deplete.get_microxs_and_flux(model, [vv_cell, bv_cell])
+        np.save(fluxes_file, fluxes)
+        vv_microxs = microxs[0]
+        bv_microxs = microxs[1]
+        vv_microxs.to_csv(vv_microxs_file)
+        bv_microxs.to_csv(bv_microxs_file)
 
     # Perform depletion (CHECK NORMALIZATION MODE)
-    vv_operator = openmc.deplete.IndependentOperator(openmc.Materials([vv_cell.fill]),
-                                                    vv_flux,
-                                                    vv_microxs,
+    operator = openmc.deplete.IndependentOperator(openmc.Materials([vv_cell.fill, bv_cell.fill]),
+                                                    fluxes,
+                                                    [vv_microxs, bv_microxs],
                                                     normalization_mode='source-rate',
                                                     reduce_chain=True,
                                                     reduce_chain_level=5) # TODO: figure out what this does and why we set to 5
@@ -62,15 +66,15 @@ def run_independent_vessel_activation(model:openmc.Model, days=365, num_timestep
     time_steps = [days/num_timesteps] * num_timesteps
     source_rates = np.ones(num_timesteps) * source_rate
 
-    vv_integrator = openmc.deplete.PredictorIntegrator(vv_operator, 
+    integrator = openmc.deplete.PredictorIntegrator(operator, 
                                                        time_steps,
                                                        source_rates=source_rates,
                                                        timestep_units='d')
     
-    vv_integrator.integrate()
+    integrator.integrate()
 
-def extract_activities(model:openmc.Model):
-    # Get the total activity in the vacuum vessel cell from depletion results
+def extract_activities(model:openmc.Model, cell_name:str="vv_cell"):
+    # Get the total activity from a specified cell
     # Another thing taken from John: https://github.com/jlball/arc-nonproliferation/commit/04de395e19fd30344d9e5b2366918e149593b5d0
     openmc.config['cross_sections'] = CROSS_SECTIONS
     openmc.config['chain_file'] = CHAIN_FILE
@@ -82,10 +86,8 @@ def extract_activities(model:openmc.Model):
     activities = np.empty(len(timesteps))
     
 
-    vv_cell = next(iter(model._cells_by_name["vv_cell"]))
-    print("second fill")
-    print(vv_cell.fill)
-    activities = results.get_activity(vv_cell.fill)
+    cell = next(iter(model._cells_by_name[cell_name]))
+    activities = results.get_activity(cell.fill)
 
     return timesteps, activities
 
@@ -122,3 +124,14 @@ def extract_nuclides(model:openmc.Model):
         nuc_atoms[nuclide_name] = results.get_atoms(vv_cell.fill, nuc=nuclide_name)[1]
 
     return timesteps, nuc_atoms
+
+
+def extract_activated_model():
+    # Make a new model from the activated materials
+
+
+
+def run_independent_vessel_decay(model:openmc.Model, days=365, num_timesteps=50):
+    # Run the decay of the vessel after a certain number of days
+
+    
