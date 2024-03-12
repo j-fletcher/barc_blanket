@@ -7,6 +7,9 @@ import os
 
 from barc_blanket.utilities import CROSS_SECTIONS, CHAIN_FILE
 
+from openmc_regular_mesh_plotter import plot_mesh_tally
+from matplotlib.colors import LogNorm
+
 # Heavily based on John's stuff here: https://github.com/jlball/arc-nonproliferation/tree/master/openmc-scripts/arc-1/independent_depletion
 
 def run_independent_vessel_activation(model:openmc.Model, days=365, num_timesteps=50, source_rate=3.6e20):
@@ -125,13 +128,30 @@ def extract_nuclides(model:openmc.Model):
 
     return timesteps, nuc_atoms
 
+def plot_2d_dose(statepoint, mesh, ):
+    photon_tally = statepoint.get_tally(name="photon_dose_on_mesh")
 
-def extract_activated_model():
-    # Make a new model from the activated materials
+    # normalising this tally is a little different to other examples as the source strength has been using units of photons per second.
+    # tally.mean is in units of pSv-cm3/source photon.
+    # as source strength is in photons_per_second this changes units to pSv-/second
 
+    # multiplication by pico_to_micro converts from (pico) pSv/s to (micro) uSv/s
+    # dividing by mesh voxel volume cancles out the cm3 units
+    # could do the mesh volume scaling on the plot and vtk functions but doing it here instead
+    pico_to_micro = 1e-6
+    seconds_to_hours = 60*60
+    scaling_factor = (seconds_to_hours * pico_to_micro) / mesh.volumes[0][0][0]
 
-
-def run_independent_vessel_decay(model:openmc.Model, days=365, num_timesteps=50):
-    # Run the decay of the vessel after a certain number of days
-
-    
+    plot = plot_mesh_tally(
+            tally=photon_tally,
+            basis="xz",
+            # score='flux', # only one tally so can make use of default here
+            value="mean",
+            colorbar_kwargs={
+                'label': "Decay photon dose [µSv/h]",
+            },
+            norm=LogNorm(),
+            volume_normalization=False,  # this is done in the scaling_factor
+            scaling_factor=scaling_factor,
+        )
+    plot.figure.savefig(f'shut_down_dose_map_timestep_{i_cool}')

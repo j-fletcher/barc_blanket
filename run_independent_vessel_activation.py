@@ -11,6 +11,8 @@ with working_directory("independent_vessel_activation"):
                     "particles": 1000,
                     "slurry_ratio": 0}
     model = make_model(model_config)
+    # Save model as xml
+    model.export_to_model_xml()
 
     rerun_depletion = True
     if not os.path.exists("depletion_results.h5") or rerun_depletion:

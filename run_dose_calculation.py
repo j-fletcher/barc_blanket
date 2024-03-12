@@ -31,22 +31,29 @@ import openmc.deplete
 import matplotlib.pyplot as plt
 from matplotlib.colors import LogNorm
 
-from barc_blanket.vessel_activation import CHAIN_FILE, CROSS_SECTIONS, extract_activated_model
+from barc_blanket.vessel_activation import CHAIN_FILE, CROSS_SECTIONS
 from barc_blanket.utilities import working_directory
+from barc_blanket.models.materials import water
 
 openmc.config['cross_sections'] = CROSS_SECTIONS
 openmc.config['chain_file'] = CHAIN_FILE
 
-# Create a place to put all the files we'll be working with for depletion
-# TODO: Implement with context switcher
+result_directory = "independent_vessel_activation"
 
 with working_directory("dose_calculation"):
     # Load model
+    model = openmc.model.Model.from_model_xml(f"../{result_directory}/model.xml")
 
+    # Replace the blanket material with water
+    blanket_cell = next(iter(model._cells_by_name["blanket_cell"]))
+    blanket_cell.fill = water()
+    # Add water to the model's materials
+    model.materials.append(blanket_cell.fill)
+    
     # Create decay gamma simulation
     gamma_settings = openmc.Settings()
     gamma_settings.particles = 1000
-    gamma_settings.batches = 100
+    gamma_settings.batches = 10
     gamma_settings.run_mode = "fixed source"
 
     mesh = openmc.RegularMesh().from_domain(
@@ -63,21 +70,20 @@ with working_directory("dose_calculation"):
     particle_filter = openmc.ParticleFilter(["photon"])
     mesh_filter = openmc.MeshFilter(mesh)
     flux_tally = openmc.Tally()
-    flux_tally.filters = [mesh_filter, dose_filter, particle_filter]#, particle_filter, mesh_filter]
+    flux_tally.filters = [mesh_filter, dose_filter, particle_filter]
     flux_tally.scores = ["flux"]
     flux_tally.name = "photon_dose_on_mesh"
-
     tallies = openmc.Tallies([flux_tally])
 
-    activated_cell_ids = [c.id for c in model.geometry.get_all_material_cells().values() if c.fill.depletable]
+    #activated_cell_ids = [c.id for c in model.geometry.get_all_material_cells().values() if c.fill.depletable]
+    activated_cell_ids = [4, 6]
     cells = model.geometry.get_all_cells()
     activated_cells = [cells[uid] for uid in activated_cell_ids]
 
-    results = openmc.deplete.Results("depletion_results.h5")
+    results = openmc.deplete.Results(f"../{result_directory}/depletion_results.h5")
     timesteps = results.get_times()
 
     for i_cool in range(len(timesteps)-1, len(timesteps)):
-
         # range starts at 1 to skip the first step as that is an irradiation step and there is no
         # decay gamma source from the stable material at that time
         # also there are no decay products in this first timestep for this model
@@ -110,6 +116,7 @@ with working_directory("dose_calculation"):
 
         gamma_settings.source = photon_sources_for_timestep
 
+
         # TODO: run with depleted material, not pristine material
         model_gamma = openmc.Model(model.geometry, model.materials, gamma_settings, tallies)
 
@@ -121,7 +128,7 @@ with working_directory("dose_calculation"):
     # You may wish to plot the dose tally on a mesh, this package makes it easy to include the geometry with the mesh tally
     from openmc_regular_mesh_plotter import plot_mesh_tally
     #for i_cool in range(1, len(timesteps)):
-    with openmc.StatePoint('statepoint.100.h5') as statepoint:
+    with openmc.StatePoint('statepoint.10.h5') as statepoint:
         photon_tally = statepoint.get_tally(name="photon_dose_on_mesh")
 
         # normalising this tally is a little different to other examples as the source strength has been using units of photons per second.
@@ -152,10 +159,6 @@ with working_directory("dose_calculation"):
             outline=True,  # enables an outline around the geometry
             geometry=model.geometry,  # needed for outline
             norm=LogNorm(),  # log scale
-            colorbar=False,
+            colorbar=True,
         )
         plot.figure.savefig(f"activation_dose_map_timestep_{100}")
-
-
-
-
