@@ -18,7 +18,7 @@ DEFAULT_PARAMETERS = {
     'bv_thickness': 5,           # How thick the burner vessel is
 
     'li6_enrichment': 0.076,     # atom% enrichment of Li6 in the FLiBe
-    'slurry_ratio': 0.01         # wt% slurry in the burner blanket
+    'slurry_ratio': 0.01         # atom% slurry in the burner blanket
 }
 
 def make_model(new_model_config=None):
