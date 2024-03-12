@@ -66,7 +66,7 @@ dose_filter = openmc.EnergyFunctionFilter(
 particle_filter = openmc.ParticleFilter(["photon"])
 mesh_filter = openmc.MeshFilter(mesh)
 flux_tally = openmc.Tally()
-flux_tally.filters = [mesh_filter]#, particle_filter, mesh_filter]
+flux_tally.filters = [mesh_filter, dose_filter, particle_filter]#, particle_filter, mesh_filter]
 flux_tally.scores = ["flux"]
 flux_tally.name = "photon_dose_on_mesh"
 
