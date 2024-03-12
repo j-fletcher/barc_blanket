@@ -1,0 +1,24 @@
+metric: tbr
+direction: maximize
+parameters:
+  major_radius:
+    distribution: int
+    max: 690
+    min: 670
+  plasma_minor_radius:
+    distribution: int
+    max: 125
+    min: 115
+  vv_thickness:
+    distribution: float
+    log: false
+    max: 2.5
+    min: 1.5
+  fusion_blanket_width:
+    distribution: int
+    max: 50
+    min: 10
+  burner_blanket_width:
+    distribution: int
+    max: 200
+    min: 90
