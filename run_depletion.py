@@ -2,17 +2,16 @@ from barc_blanket.vessel_activation import run_independent_vessel_activation, ex
 import os
 import matplotlib.pyplot as plt
 from barc_blanket.utilities import working_directory
-from barc_blanket.models.simple_geometry import make_model
+from barc_blanket.models.barc_model_simple_toroidal import make_model, DEFAULT_PARAMETERS
 
-# Create a place to put all the files we'll be working with for depletion (TODO: standardize this structure with the rest of the group)
+# Create a place to put all the files we'll be working with for depletion
 with working_directory("dose_calculation"):
 
-    model = make_model()
+    model = make_model(DEFAULT_PARAMETERS)
 
     rerun_depletion = True
     if not os.path.exists("depletion_results.h5") or rerun_depletion:
         run_independent_vessel_activation(model, days=365, num_timesteps=100, source_rate=2e20)
-
 
     timesteps, nuclides = extract_nuclides(model)
 

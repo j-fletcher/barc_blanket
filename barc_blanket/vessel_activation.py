@@ -9,13 +9,15 @@ from barc_blanket.utilities import CROSS_SECTIONS, CHAIN_FILE
 
 # Heavily based on John's stuff here: https://github.com/jlball/arc-nonproliferation/tree/master/openmc-scripts/arc-1/independent_depletion
 
-def run_independent_vessel_activation(model:openmc.Model, days=365, num_timesteps=50, source_rate=3.6e20):
+def run_independent_vessel_activation(model:openmc.Model, model_config, days=365, num_timesteps=50, source_rate=3.6e20):
     """ Run the vessel activation after a certain number of days.
 
     Parameters:
     -----------
     model : openmc.Model
         The model to get the vessel activation from.
+    model_config : dict
+        The configuration of the model, detailing dimensions of geometry
     days : int
         The number of days to run the model for.
     num_timesteps : int
@@ -28,8 +30,9 @@ def run_independent_vessel_activation(model:openmc.Model, days=365, num_timestep
     openmc.config['chain_file'] = CHAIN_FILE
 
     # Obtain a pointer to the vacuum vessel cell
-    # TODO: there's definitely an easier way to do this
-    vv_cell = next(iter(model._cells_by_name["inboard_vv_cell"]))
+    vv_cell = next(iter(model._cells_by_name["vv_cell"]))
+    # TODO: add activation of burner cell
+    #bv_cell = next(iter(model._cells_by_name["bv_cell"]))
 
     # Check if flux and microscopic cross sections are present.
     # If not, calculate them
