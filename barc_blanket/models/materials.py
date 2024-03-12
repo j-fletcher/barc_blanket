@@ -84,11 +84,11 @@ def burner_mixture(slurry_ratio):
     """Create a mixture of flibe and tank contents for the burner blanket"""
     flibe_ao = 1 - slurry_ratio
 
-    tank_contents = openmc.Material.mix_materials(
+    burner_mixture = openmc.Material.mix_materials(
         [flibe, tank_contents],
         [flibe_ao, slurry_ratio],
         'ao',
         name="burner_mixture"
     )
 
-    return tank_contents
+    return burner_mixture

@@ -1,7 +1,7 @@
 import openmc
 import numpy as np
 
-from materials import dt_plasma, flibe, enriched_flibe, burner_mixture, v4cr4ti, tungsten
+from .materials import dt_plasma, flibe, enriched_flibe, burner_mixture, v4cr4ti, tungsten
 
 # Default model parameters
 # TODO: this all assumes a circular cross-section, which is not necessarily the case
@@ -16,6 +16,7 @@ DEFAULT_PARAMETERS = {
     'fusion_blanket_width': 20,  # Width of the material in the fusion blanket
     'burner_blanket_width': 100, # Width of the material in the burner blanket
     'bv_thickness': 5,           # How thick the burner vessel is
+
     'li6_enrichment': 0.076,     # atom% enrichment of Li6 in the FLiBe
     'slurry_ratio': 0.01         # wt% slurry in the burner blanket
 }
@@ -147,10 +148,12 @@ def make_model(new_model_config=None):
     universe = openmc.Universe()
     universe.add_cell(plasma_cell)
     universe.add_cell(sol_cell)
+    universe.add_cell(first_wall_cell)
     universe.add_cell(inboard_vv_cell)
     universe.add_cell(fusion_blanket_cell)
     universe.add_cell(outboard_vv_cell)
     universe.add_cell(burner_blanket_cell)
+    universe.add_cell(bv_cell)
     universe.add_cell(bounding_sphere_cell)
     geometry = openmc.Geometry(universe)
 
