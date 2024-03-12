@@ -14,3 +14,6 @@ dependencies:
   - pip
   - yaml ==0.2.5
   - optuna ==3.5.0
+  - scipy ==1.11.4
+  - pip:
+    - openmc_regular_mesh_plotter
