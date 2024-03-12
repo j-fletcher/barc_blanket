@@ -8,7 +8,8 @@ from barc_blanket.models.barc_model_simple_toroidal import make_model
 with working_directory("dose_calculation"):
 
     model_config = {"batches": 5,
-                    "particles": 100}
+                    "particles": 100,
+                    "slurry_ratio": 0}
     model = make_model(model_config)
 
     rerun_depletion = True

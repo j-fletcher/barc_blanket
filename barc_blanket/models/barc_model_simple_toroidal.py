@@ -159,10 +159,12 @@ def make_model(new_model_config=None):
     settings = openmc.Settings(run_mode='fixed source')
     settings.photon_transport = False
     settings.source = source
-    settings.batches = 50
-    settings.particles = int(1e5) # modify this to shorten simulation, default was 1e6 
-    settings.statepoint = {'batches': [
-        5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100]}
+    settings.batches = model_config['batches']
+    settings.particles = int(model_config['particles'])
+    # Make statepoints every 5 batches, ensuring the final batch is always included
+    statepoint_set = set([i for i in range(5, model_config['batches']+1, 5)])
+    statepoint_set.add(model_config['batches'])
+    settings.statepoint = {'batches': list(statepoint_set)}
     settings.output = {'tallies': True}
 
     #####################
