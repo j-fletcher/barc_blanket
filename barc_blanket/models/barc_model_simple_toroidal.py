@@ -2,7 +2,7 @@ import os
 import openmc
 import numpy as np
 
-from .materials import dt_plasma, flibe, enriched_flibe, burner_mixture, v4cr4ti, tungsten
+from barc_blanket.models.materials import dt_plasma, flibe, burner_mixture, v4cr4ti, tungsten
 
 # Default model parameters
 # TODO: this all assumes a circular cross-section, which is not necessarily the case
@@ -104,14 +104,14 @@ def make_model(new_model_config=None):
         region=+first_wall_inner_surface & -vv_inner_surface,
         fill=first_wall_material
     )
-    first_wall_cell.fill.volume = (2*np.pi*R)*np.pi*(first_wall_inner_radius**2 - vv_inner_radius**2)
+    first_wall_cell.fill.volume = (2*np.pi*R)*np.pi*(vv_inner_radius**2 - first_wall_inner_radius**2)
 
     vv_cell = openmc.Cell(
         name='vv_cell',
         region=+vv_inner_surface & -vv_outer_surface,
         fill=vv_material
     )
-    vv_cell.fill.volume = (2*np.pi*R)*np.pi*(vv_inner_radius**2 - vv_outer_radius**2)
+    vv_cell.fill.volume = (2*np.pi*R)*np.pi*(vv_outer_radius**2 - vv_inner_radius**2)
 
     blanket_cell = openmc.Cell(
         name='blanket_cell',
@@ -124,7 +124,7 @@ def make_model(new_model_config=None):
         region=+bv_inner_surface & -bv_outer_surface,
         fill=bv_material
     )
-    bv_cell.fill.volume = (2*np.pi*R)*np.pi*(bv_inner_radius**2 - bv_outer_radius**2)
+    bv_cell.fill.volume = (2*np.pi*R)*np.pi*(bv_outer_radius**2 - bv_inner_radius**2)
 
     bounding_sphere_cell = openmc.Cell(
         name='bounding_sphere_cell',
