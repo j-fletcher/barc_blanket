@@ -14,7 +14,7 @@ DEFAULT_PARAMETERS = {
     'sol_width': 5,
     'first_wall_thickness': 1,   # How thick the plasma facing material is
     'vv_thickness': 2,           # How thick the wall of the vacuum vessel is
-    'blanket_width': 20,         # Width of the material in the fusion blanket
+    'blanket_width': 100,         # Width of the material in the fusion blanket
     'bv_thickness': 5,           # How thick the burner vessel is
 
     'li6_enrichment': 0.076,     # atom% enrichment of Li6 in the FLiBe

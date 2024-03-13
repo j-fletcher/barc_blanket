@@ -39,10 +39,11 @@ openmc.config['cross_sections'] = CROSS_SECTIONS
 openmc.config['chain_file'] = CHAIN_FILE
 
 result_directory = "independent_vessel_activation"
+#result_directory = "independent_vessel_decay"
 
 with working_directory("dose_calculation"):
     # Load model
-    model = openmc.model.Model.from_model_xml(f"../{result_directory}/model.xml")
+    model = openmc.model.Model.from_model_xml(f"../independent_vessel_activation/model.xml")
 
     # Replace the blanket material with water
     blanket_cell = next(iter(model._cells_by_name["blanket_cell"]))
@@ -52,13 +53,13 @@ with working_directory("dose_calculation"):
     
     # Create decay gamma simulation
     gamma_settings = openmc.Settings()
-    gamma_settings.particles = 1000
-    gamma_settings.batches = 10
+    gamma_settings.particles = 10000
+    gamma_settings.batches = 100
     gamma_settings.run_mode = "fixed source"
 
     mesh = openmc.RegularMesh().from_domain(
         model.geometry,
-        dimension=[20, 20, 10], # 100 voxels in each axis direction
+        dimension=[100, 10, 100], # 100 voxels in each axis direction
     )
 
     # Add dose tally to the regular mesh
@@ -76,7 +77,7 @@ with working_directory("dose_calculation"):
     tallies = openmc.Tallies([flux_tally])
 
     #activated_cell_ids = [c.id for c in model.geometry.get_all_material_cells().values() if c.fill.depletable]
-    activated_cell_ids = [4, 6]
+    activated_cell_ids = [3, 4, 6]
     cells = model.geometry.get_all_cells()
     activated_cells = [cells[uid] for uid in activated_cell_ids]
 
@@ -116,7 +117,6 @@ with working_directory("dose_calculation"):
 
         gamma_settings.source = photon_sources_for_timestep
 
-
         # TODO: run with depleted material, not pristine material
         model_gamma = openmc.Model(model.geometry, model.materials, gamma_settings, tallies)
 
@@ -128,7 +128,7 @@ with working_directory("dose_calculation"):
     # You may wish to plot the dose tally on a mesh, this package makes it easy to include the geometry with the mesh tally
     from openmc_regular_mesh_plotter import plot_mesh_tally
     #for i_cool in range(1, len(timesteps)):
-    with openmc.StatePoint('statepoint.10.h5') as statepoint:
+    with openmc.StatePoint('statepoint.100.h5') as statepoint:
         photon_tally = statepoint.get_tally(name="photon_dose_on_mesh")
 
         # normalising this tally is a little different to other examples as the source strength has been using units of photons per second.
@@ -154,11 +154,14 @@ with working_directory("dose_calculation"):
         #         scaling_factor=scaling_factor,
         #     )
         plot = plot_mesh_tally(
-            basis="xy",  # as the mesh dimention is [1,40,40] only the yz basis can be plotted
+            basis="xz",  # as the mesh dimention is [1,40,40] only the yz basis can be plotted
             tally=photon_tally,
             outline=True,  # enables an outline around the geometry
             geometry=model.geometry,  # needed for outline
             norm=LogNorm(),  # log scale
             colorbar=True,
         )
-        plot.figure.savefig(f"activation_dose_map_timestep_{100}")
+        # Set x and y limits
+        plot.axes.set_xlim(400, 900)
+        plot.axes.set_ylim(-300, 300)
+        plot.figure.savefig(f"{result_directory}_dose_map_timestep_{100}")
