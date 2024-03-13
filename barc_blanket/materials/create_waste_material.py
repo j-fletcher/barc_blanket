@@ -333,18 +333,23 @@ def create_waste_material(tank,phase,mat_name):
     # 1e-8 threshold is 11 mCi of Co-60, for example
     total_mass = np.sum(list(all_elements_present.values())) + np.sum(list(all_radionuclides_present.values()))
     waste_material = openmc.Material(name=mat_name)
+    removals = []
     for el in all_elements_present.keys():
         if all_elements_present[el] > 1e-8:
             wf = all_elements_present[el] / total_mass
             waste_material.add_element(el,wf,'wo')
         else:
-            warnings.warn("Warning! Removed elemental {} from material as mass below 1e-8 kg.".format(el))
+            removals.append(el)
+
     for rn in all_radionuclides_present.keys():
         if all_radionuclides_present[rn] > 1e-8:
             wf = all_radionuclides_present[rn] / total_mass
             waste_material.add_nuclide(rn,wf,'wo')
         else:
-            warnings.warn("Warning! Removed radionuclide {} from material as mass below 1e-8 kg.".format(rn))
+            removals.append(rn)
+    if removals:
+        warnings.warn("Warning! Removed the following elements/radionuclides from material as mass below 1e-8 kg:")
+        print(removals)
 
     # Calculate density using a mass-weighted average across all waste types present in the phase of interest
     # this is still double-counting but as long as every analyte appears in every waste type it's fine 
@@ -355,10 +360,10 @@ def create_waste_material(tank,phase,mat_name):
 
     for t in utypes:
         tmass = df.loc[(df['WasteSiteId'] == tank) & (df['WastePhase'] == phase) & (df['WasteType'] == t),['Mass (kg)']].values[:,0]
-        typemasses[np.where(utypes == t)] = np.sum(tmass)
-
+        typemasses[np.where(utypes == t)] = np.nansum(tmass)
+        # We ignore NaNs, which are found wherever the mixed nuclides (e.g. 239/240Pu) are listed
         tdens = df.loc[(df['WasteSiteId'] == tank) & (df['WastePhase'] == phase) & (df['WasteType'] == t),['ComponentDensity (g/mL)']].values[:,0]
-        typedensities[np.where(utypes == t)] = np.mean(tdens)
+        typedensities[np.where(utypes == t)] = np.nanmean(tdens)
     
     rho = np.average(typedensities,axis=None,weights=typemasses).round(3)
     waste_material.set_density('g/cm3',rho)
