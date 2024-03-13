@@ -228,18 +228,18 @@ def create_waste_material(tank,phase,mat_name):
         # example: Cs137: 0.06
         # now correctly loops through nuclide library scan inside of analyte scan. if an analyte appears multiple times (i.e. in multiple waste types)
         # the mass will be summed across all instances of the analyte within the tank and phase of interest.
-		analytes = df.loc[(df['WasteSiteId'] == tankID) & (df['WastePhase'] == WastePhase),['Analyte']].values[:,0]
-		nuclides = []
-		nuclides_reformatted = []
-		masses = []
-
+        analytes = df.loc[(df['WasteSiteId'] == tankID) & (df['WastePhase'] == WastePhase),['Analyte']].values[:,0]
+        nuclides = []
+        nuclides_reformatted = []
+        masses = []
+        
         for rn in radionuclide_list:
             if rn in analytes:
                 nuclides.append(rn)
                 masses.append(df.loc[(df['WasteSiteId'] == tankID) & (df['WastePhase'] == WastePhase)& (df['Analyte'] == rn),['Mass (kg)']].values.sum())
         nuclides_mass_dict = dict(zip(nuclides,masses))
 
-		for nuclide in nuclides:
+        for nuclide in nuclides:
             digits = ''
             letters = ''
             new_key = ''
@@ -256,27 +256,27 @@ def create_waste_material(tank,phase,mat_name):
                         letters += nuclide[i]
             new_key = letters+digits
             nuclides_reformatted.append(new_key)
-		nuclides_reformatted_dict = dict(zip(nuclides_reformatted,nuclides_mass_dict.values()))
-		return nuclides_reformatted_dict
+        nuclides_reformatted_dict = dict(zip(nuclides_reformatted,nuclides_mass_dict.values()))
+        return nuclides_reformatted_dict
 
-	############################### Remove Double-Counting Surveys ##################################################################################
+    ############################### Remove Double-Counting Surveys ##################################################################################
     def elements_from_nuclides(data,tankID,WastePhase):
         # gives dictionary of elements which are represented in both radionuclide and total elemental surveys
         # form of output: dictionary of Element: Radionuclide
         # e.g. Cs: 137Cs
-		nuclides = nuclide_masses_per_tank_waste_phase(data,tankID,WastePhase)
-		elements_separated = []
-		for compounds in nuclides.keys():
-			letters = ''
-			for i in range(len(compounds)):
-				sep_element = ''
-				if i < 2:
-					if compounds[i].isalpha():
-						letters += compounds[i]
-			sep_element = letters
-			elements_separated.append(sep_element)
-			elements_separated_dict = dict(zip(elements_separated,nuclides.keys()))
-		return elements_separated_dict
+        nuclides = nuclide_masses_per_tank_waste_phase(data,tankID,WastePhase)
+        elements_separated = []
+        for compounds in nuclides.keys():
+            letters = ''
+            for i in range(len(compounds)):
+                sep_element = ''
+                if i < 2:
+                    if compounds[i].isalpha():
+                        letters += compounds[i]
+            sep_element = letters
+            elements_separated.append(sep_element)
+            elements_separated_dict = dict(zip(elements_separated,nuclides.keys()))
+        return elements_separated_dict
 
     def remove_duplicate_surveys(nuclides_present,elements_present,compounds_present):
         
@@ -291,9 +291,9 @@ def create_waste_material(tank,phase,mat_name):
         for nuclide in nuclides_present.keys():
             letters = ''
             for i in range(len(nuclide)):
-				if i < 2:
-					if nuclide[i].isalpha():
-						letters += nuclide[i]
+                if i < 2:
+                    if nuclide[i].isalpha():
+                        letters += nuclide[i]
             if letters in elements_present.keys():
                 nuclide_double_counted_elements.append(letters)
                 if letters in double_count_masses.keys():
