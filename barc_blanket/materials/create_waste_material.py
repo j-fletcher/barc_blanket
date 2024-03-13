@@ -176,7 +176,7 @@ def create_waste_material(tank,phase,mat_name):
             elif substance == '144Ce/Pr' or substance == '239/240Pu' or substance == '243/244Cm':
                 actvy = np.sum(data.loc[(data['WasteSiteId'] == tankID) & (data['WastePhase'] == WastePhase) & (data['Analyte'] == substance),['Activity (Ci)']].values[:,0])
                 warnings.warn("Warning! Selected phase contains {} for which nuclide mass data cannot be determined! Activity present: {} Ci.".format(substance,actvy))
-            elif substance not in element_list and substance not in radionuclide_list:
+            elif substance not in element_list and substance not in radionuclide_list and substance not in analytes_to_ignore:
                 raise KeyError('Unknown substance {} encountered in tank contents!'.format(substance))
     
         total_carbon_mass = 0
@@ -331,7 +331,7 @@ def create_waste_material(tank,phase,mat_name):
 
     # Add Elements and Nuclides to Material (if mass above 1e-8 kg in parent tank & phase)
     # 1e-8 threshold is 11 mCi of Co-60, for example
-    total_mass = np.sum(all_elements_present.values()) + np.sum(all_radionuclides_present.values())
+    total_mass = np.sum(list(all_elements_present.values())) + np.sum(list(all_radionuclides_present.values()))
     waste_material = openmc.Material(name=mat_name)
     for el in all_elements_present.keys():
         if all_elements_present[el] > 1e-8:
@@ -355,10 +355,10 @@ def create_waste_material(tank,phase,mat_name):
 
     for t in utypes:
         tmass = df.loc[(df['WasteSiteId'] == tank) & (df['WastePhase'] == phase) & (df['WasteType'] == t),['Mass (kg)']].values[:,0]
-        typemasses[utypes.index(t)] = np.sum(tmass)
+        typemasses[np.where(utypes == t)] = np.sum(tmass)
 
         tdens = df.loc[(df['WasteSiteId'] == tank) & (df['WastePhase'] == phase) & (df['WasteType'] == t),['ComponentDensity (g/mL)']].values[:,0]
-        typedensities[utypes.index(t)] = np.mean(tdens)
+        typedensities[np.where(utypes == t)] = np.mean(tdens)
     
     rho = np.average(typedensities,axis=None,weights=typemasses).round(3)
     waste_material.set_density('g/cm3',rho)
