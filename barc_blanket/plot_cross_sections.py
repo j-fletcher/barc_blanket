@@ -1,8 +1,33 @@
 # Plotting cross sections for arbitrary materials
 # Author: Zander Keith [2024]
 
+from numpy import inf, clip
+from matplotlib import figure
+
 from openmc.material import Material
 from openmc.plotter import plot_xs
+
+def clip_fig_y_axis(fig:figure.Figure, range=(1e-4, 1e4)):
+    """ Sometimes the normalized cross sections can overflow, so clip  them to a reasonable range
+    
+    Parameters:
+    -----------
+    fig : matplotlib.figure.Figure
+        The figure to clip the y-axis of.
+    range : tuple
+        The range to clip the y-axis to. Default is (1e-4, 1e4).
+    """
+
+    axes = fig.gca()
+    min_y = inf
+    max_y = -inf
+    for line in axes.lines:
+        clipped_data = clip(line.get_ydata(), range[0], range[1])
+        min_y = min(min_y, min(clipped_data))
+        max_y = max(max_y, max(clipped_data))
+
+    axes.set_ylim(min_y, max_y)
+
 
 def nu_fission(materials:list[Material], axis=None, normalize=True):
     """Plot the number of new neutrons produced per fission for a list of materials.
@@ -39,6 +64,9 @@ def nu_fission(materials:list[Material], axis=None, normalize=True):
 
     fig = plot_xs(reactions, axis=axis, divisor_types=divisor_xs)
 
+    if normalize:
+        clip_fig_y_axis(fig)
+
     return fig
 
 def nu_scatter(materials:list[Material], axis=None, normalize=True):
@@ -74,6 +102,9 @@ def nu_scatter(materials:list[Material], axis=None, normalize=True):
         reactions[material] = ['nu-scatter']
 
     fig = plot_xs(reactions, axis=axis, divisor_types=divisor_xs)
+
+    if normalize:
+        clip_fig_y_axis(fig)
 
     return fig
 
