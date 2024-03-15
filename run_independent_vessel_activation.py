@@ -1,5 +1,6 @@
 from barc_blanket.vessel_activation import run_independent_vessel_activation, extract_activities, extract_nuclides
 import os
+import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib as mpl
 from barc_blanket.utilities import working_directory
@@ -16,29 +17,28 @@ with working_directory("independent_vessel_activation"):
     model.export_to_model_xml()
 
     rerun_depletion = False
+    times = np.geomspace(0.01, 365, 100)
     if not os.path.exists("depletion_results.h5") or rerun_depletion:
-        run_independent_vessel_activation(model, days=365, num_timesteps=100)
+        run_independent_vessel_activation(model, times=times)
 
-    # timesteps, nuclides = extract_nuclides(model)
+    nuclide_times, nuclides = extract_nuclides(model, cell_name="bv_cell", nuclide_names=["V49"])
 
-    # normalized_nuclides = {}
-    # for key in nuclides:
-    #     normalized_nuclides[key] = (nuclides[key] - nuclides[key][0]) / nuclides[key][0]
+    #normalized_nuclides = {}
+    #for key in nuclides:
+    #    normalized_nuclides[key] = (nuclides[key] - nuclides[key][0]) / nuclides[key][0]
 
-    # # Plot the change in nuclide concentration over time
-    # fig, ax = plt.subplots()
-    # for key in normalized_nuclides:
-    #     ax.plot(timesteps, normalized_nuclides[key], label=key)
+    # Plot the change in nuclide concentration over time
+    fig, ax = plt.subplots()
+    for key in nuclides:
+        ax.plot(nuclide_times, nuclides[key], label=key)
 
-    # ax.set_xlabel("Time (days)")
-    # ax.set_ylabel("Normalized Concentration")
-    # ax.set_title("Nuclide Atom Count")
-    # ax.legend(loc='upper right')
-    # fig.savefig("nuclide_concentration.png")
+    ax.set_xlabel("Time (days)")
+    ax.set_ylabel("Nuclide Count")
+    ax.set_title("Nuclide Atom Count over Time")
+    ax.legend(loc='upper right')
+    fig.savefig("nuclide_concentration.png")
 
-    timesteps, first_wall_activities = extract_activities(model, "first_wall_cell")
-    timesteps, vv_activities = extract_activities(model, "vv_cell")
-    timesteps, bv_activities = extract_activities(model, "bv_cell")
+    activity_times, bv_activities = extract_activities(model, "bv_cell")
 
     # # Plot the activities over time
 
@@ -49,17 +49,14 @@ with working_directory("independent_vessel_activation"):
     plt.grid(True, color='w', linestyle='-', linewidth=1.5)
     plt.gca().patch.set_facecolor('0.92')
 
-    #ax.plot(timesteps, activities)
-    plt.plot(timesteps, first_wall_activities[1], label="First Wall")
-    plt.plot(timesteps, vv_activities[1], label="Vacuum Vessel")
-    plt.plot(timesteps, bv_activities[1], label="Blanket Vessel")
+    plt.plot(activity_times, bv_activities[1], label="Blanket Vessel")
     plt.legend(loc='right')
     plt.xlabel("Time [days]")
     plt.ylabel("Activity [Bq]")
     plt.title("Vessel Activation")
     plt.yscale('symlog', linthresh=1e12)
-    plt.xlim(0, max(timesteps))
-    plt.ylim(0, max(max(first_wall_activities[1]), max(vv_activities[1]), max(bv_activities[1]))*1.01)
+    plt.xlim(0, max(activity_times))
+    plt.ylim(0, max(bv_activities[1])*1.01)
     
 
     # Save figure

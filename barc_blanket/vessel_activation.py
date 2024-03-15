@@ -12,7 +12,7 @@ from matplotlib.colors import LogNorm
 
 # Heavily based on John's stuff here: https://github.com/jlball/arc-nonproliferation/tree/master/openmc-scripts/arc-1/independent_depletion
 
-def run_independent_vessel_activation(model:openmc.Model, days=365, num_timesteps=50, source_rate=3.6e20):
+def run_independent_vessel_activation(model:openmc.Model, days=365, num_timesteps=50, times=None, source_rate=3.6e20):
     """ Run the vessel activation after a certain number of days.
 
     Parameters:
@@ -20,9 +20,11 @@ def run_independent_vessel_activation(model:openmc.Model, days=365, num_timestep
     model : openmc.Model
         The model to get the vessel activation from.
     days : int
-        The number of days to run the model for.
+        The number of days to run the model for. Default is 365.
     num_timesteps : int
-        The number of timesteps to run the model for.
+        The number of timesteps to run the model for. Default is 50.
+    times : list
+        The times to evaluate activation. Default is None. If not none, it will override days and num_timesteps.
     source_rate : float
         The source rate of neutrons in the model. Default is 3.6e20 (for 1 GW fusion power)
     """
@@ -70,11 +72,16 @@ def run_independent_vessel_activation(model:openmc.Model, days=365, num_timestep
                                                     reduce_chain=True,
                                                     reduce_chain_level=5) # TODO: figure out what this does and why we set to 5
     
-    time_steps = [days/num_timesteps] * num_timesteps
-    source_rates = np.ones(num_timesteps) * source_rate
-
+    # 'timestep' is the actual time of the depletion step
+    # 'timediff' is the difference in time between the current and previous depletion step
+    if times is None:
+        timesteps = [days/num_timesteps] * num_timesteps
+    else:
+        timesteps = np.diff(times)
+    source_rates = np.ones(len(timesteps)) * source_rate
+    
     integrator = openmc.deplete.PredictorIntegrator(operator, 
-                                                       time_steps,
+                                                       timesteps,
                                                        source_rates=source_rates,
                                                        timestep_units='d')
     
@@ -138,7 +145,7 @@ def run_independent_vessel_decay(model:openmc.Model, results, days=365, num_time
     
     integrator.integrate()
 
-def extract_activities(model:openmc.Model, cell_name:str="vv_cell"):
+def extract_activities(model:openmc.Model, cell_name:str="bv_cell"):
     # Get the total activity from a specified cell
     # Another thing taken from John: https://github.com/jlball/arc-nonproliferation/commit/04de395e19fd30344d9e5b2366918e149593b5d0
     openmc.config['cross_sections'] = CROSS_SECTIONS
@@ -147,25 +154,25 @@ def extract_activities(model:openmc.Model, cell_name:str="vv_cell"):
     # load results
     results = openmc.deplete.Results("depletion_results.h5")
     
-    timesteps = results.get_times()
-    activities = np.empty(len(timesteps))
+    times = results.get_times()
+    activities = np.empty(len(times))
     
 
     cell = next(iter(model._cells_by_name[cell_name]))
     activities = results.get_activity(cell.fill)
 
-    return timesteps, activities
+    return times, activities
 
 def extract_decay_photon_energies():
     # Get the decay photon energies from the depletion results
     
     results = openmc.deplete.Results("depletion_results.h5")
-    timesteps = results.get_times()
-    activities = np.empty(len(timesteps))
+    times = results.get_times()
+    activities = np.empty(len(times))
 
     dists = []
 
-    for i, step in enumerate(timesteps):
+    for i, time in enumerate(times):
         materials = results.export_to_materials(i)
 
         vv_material = materials[0]
@@ -173,24 +180,39 @@ def extract_decay_photon_energies():
         activities[i] = vv_material.get_activity()
         dists.append(vv_material.get_decay_photon_energy())
 
-    return timesteps, dists
+    return times, dists
 
-def extract_nuclides(model:openmc.Model):
+def extract_original_nuclides(model:openmc.Model, cell_name:str="bv_cell"):
     openmc.config['cross_sections'] = CROSS_SECTIONS
     openmc.config['chain_file'] = CHAIN_FILE
 
     results = openmc.deplete.Results("depletion_results.h5")
-    timesteps = results.get_times()
-    vv_cell = next(iter(model._cells_by_name["vv_cell"]))
+    times = results.get_times()
+    cell = next(iter(model._cells_by_name[cell_name]))
     
     nuc_atoms = {}
-    for nuclide_tuple in vv_cell.fill.nuclides:
+    for nuclide_tuple in cell.fill.nuclides:
         nuclide_name = nuclide_tuple[0]
-        nuc_atoms[nuclide_name] = results.get_atoms(vv_cell.fill, nuc=nuclide_name)[1]
+        nuc_atoms[nuclide_name] = results.get_atoms(cell.fill, nuc=nuclide_name)[1]
 
-    return timesteps, nuc_atoms
+    return times, nuc_atoms
 
-def plot_2d_dose(statepoint, mesh, ):
+def extract_nuclides(model:openmc.Model, cell_name:str="bv_cell", nuclide_names:list=["H-3", "He-4"]):
+    openmc.config['cross_sections'] = CROSS_SECTIONS
+    openmc.config['chain_file'] = CHAIN_FILE
+
+    results = openmc.deplete.Results("depletion_results.h5")
+    times = results.get_times()
+    cell = next(iter(model._cells_by_name[cell_name]))
+    
+    nuc_atoms = {}
+    for nuclide_name in nuclide_names:
+        nuc_atoms[nuclide_name] = np.empty(len(times))
+        nuc_atoms[nuclide_name] = results.get_atoms(cell.fill, nuc=nuclide_name)[1]
+
+    return times, nuc_atoms
+
+def plot_2d_dose(statepoint, mesh):
     photon_tally = statepoint.get_tally(name="photon_dose_on_mesh")
 
     # normalising this tally is a little different to other examples as the source strength has been using units of photons per second.
