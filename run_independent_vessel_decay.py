@@ -1,8 +1,9 @@
 import openmc
 import openmc.model
 import openmc.deplete
-from barc_blanket.vessel_activation import run_independent_vessel_decay, extract_activities, extract_nuclides
+from barc_blanket.vessel_activation import run_independent_vessel_decay, extract_activities, extract_decay_heat
 import os
+import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib as mpl
 from barc_blanket.utilities import working_directory
@@ -44,17 +45,45 @@ with working_directory("independent_vessel_decay"):
                                      settings=activated_model.settings)
     
     rerun_depletion = False
+    times = np.geomspace(0.01, 10, 100)
     if not os.path.exists("depletion_results.h5") or rerun_depletion:
-        #run_independent_vessel_activation(decay_model, days=365, num_timesteps=100, source_rate=0)
-        run_independent_vessel_decay(decay_model, results, days=365, num_timesteps=100)
+        run_independent_vessel_decay(decay_model, results, times=times)
 
-    # TODO: see how it's doing this
-    timesteps, first_wall_activities = extract_activities(decay_model, "first_wall_cell")
-    timesteps, vv_activities = extract_activities(decay_model, "vv_cell")
-    timesteps, bv_activities = extract_activities(decay_model, "bv_cell")
+    #timesteps, first_wall_activities = extract_activities(decay_model, "first_wall_cell")
+    #timesteps, vv_activities = extract_activities(decay_model, "vv_cell")
+    #timesteps, bv_activities = extract_activities(decay_model, "bv_cell")
 
     # # Plot the activities over time
 
+    # plt.figure(figsize=(8, 6))
+    # plt.style.use('seaborn-v0_8-poster')
+    # plt.rc('text', usetex=True)
+    # plt.rc('font', family='serif')
+    # plt.grid(True, color='w', linestyle='-', linewidth=1.5)
+    # plt.gca().patch.set_facecolor('0.92')
+
+    # #ax.plot(timesteps, activities)
+    # plt.plot(timesteps-365, first_wall_activities[1], label="First Wall")
+    # plt.plot(timesteps-365, vv_activities[1], label="Vacuum Vessel")
+    # plt.plot(timesteps-365, bv_activities[1], label="Blanket Vessel")
+    # plt.legend(loc='upper right')
+    # plt.xlabel("Time [days]")
+    # plt.ylabel("Activity [Bq]")
+    # plt.title("Vessel Decay")
+    # plt.yscale('symlog', linthresh=1e12)
+    # plt.xlim(0, 365)
+    # #plt.ylim(0, max(max(first_wall_activities[1]), max(vv_activities[1]), max(bv_activities[1]))*1.01)
+    
+    # # Save figure
+    # plt.savefig("vessel_activation.png")
+
+    plt.rcParams.update(mpl.rcParamsDefault)
+
+    heat_times, bv_decay_heat = extract_decay_heat(decay_model, "bv_cell")
+    heat_times, vv_decay_heat = extract_decay_heat(decay_model, "vv_cell")
+    heat_times, first_wall_decay_heat = extract_decay_heat(decay_model, "first_wall_cell")
+    
+    # # Plot the decay heat over time
     plt.figure(figsize=(8, 6))
     plt.style.use('seaborn-v0_8-poster')
     plt.rc('text', usetex=True)
@@ -62,21 +91,17 @@ with working_directory("independent_vessel_decay"):
     plt.grid(True, color='w', linestyle='-', linewidth=1.5)
     plt.gca().patch.set_facecolor('0.92')
 
-    #ax.plot(timesteps, activities)
-    plt.plot(timesteps-365, first_wall_activities[1], label="First Wall")
-    plt.plot(timesteps-365, vv_activities[1], label="Vacuum Vessel")
-    plt.plot(timesteps-365, bv_activities[1], label="Blanket Vessel")
+    plt.plot(heat_times, bv_decay_heat, label="Blanket Vessel")
+    plt.plot(heat_times, vv_decay_heat, label="Vacuum Vessel")
+    plt.plot(heat_times, first_wall_decay_heat, label="First Wall")
+    plt.xlim(0, max(heat_times))
     plt.legend(loc='upper right')
     plt.xlabel("Time [days]")
-    plt.ylabel("Activity [Bq]")
-    plt.title("Vessel Decay")
-    plt.yscale('symlog', linthresh=1e12)
-    plt.xlim(0, 365)
-    #plt.ylim(0, max(max(first_wall_activities[1]), max(vv_activities[1]), max(bv_activities[1]))*1.01)
-    
+    plt.ylabel("Decay Heat [W]")
+    plt.title("Vessel Decay Heat")
 
-    # Save figure
-    plt.savefig("vessel_activation.png")
+    plt.savefig("vessel_decay_heat.png")
 
     plt.rcParams.update(mpl.rcParamsDefault)
+    
 

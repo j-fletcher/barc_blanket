@@ -87,7 +87,7 @@ def run_independent_vessel_activation(model:openmc.Model, days=365, num_timestep
     
     integrator.integrate()
 
-def run_independent_vessel_decay(model:openmc.Model, results, days=365, num_timesteps=50):
+def run_independent_vessel_decay(model:openmc.Model, results, days=365, num_timesteps=50, times=None):
     """ Run the vessel decay after a certain number of days.
 
     Parameters:
@@ -98,6 +98,8 @@ def run_independent_vessel_decay(model:openmc.Model, results, days=365, num_time
         The number of days to run the model for.
     num_timesteps : int
         The number of timesteps to run the model for.
+    times : list
+        The times to evaluate activation. If not none, it will override days and num_timesteps.
     """
 
     openmc.config['cross_sections'] = CROSS_SECTIONS
@@ -135,11 +137,14 @@ def run_independent_vessel_decay(model:openmc.Model, results, days=365, num_time
                                                     reduce_chain=True,
                                                     reduce_chain_level=5) # TODO: figure out what this does and why we set to 5
     
-    time_steps = [days/num_timesteps] * num_timesteps
-    source_rates = np.ones(num_timesteps) # source rate is very close to 0 so decay can happen
+    if times is None:
+        timesteps = [days/num_timesteps] * num_timesteps
+    else:
+        timesteps = np.diff(times)
+    source_rates = np.ones(len(timesteps)) # source rate is very close to 0 so decay can happen
 
     integrator = openmc.deplete.PredictorIntegrator(operator, 
-                                                       time_steps,
+                                                       timesteps,
                                                        source_rates=source_rates,
                                                        timestep_units='d')
     
@@ -156,12 +161,50 @@ def extract_activities(model:openmc.Model, cell_name:str="bv_cell"):
     
     times = results.get_times()
     activities = np.empty(len(times))
-    
 
     cell = next(iter(model._cells_by_name[cell_name]))
     activities = results.get_activity(cell.fill)
 
     return times, activities
+
+def extract_decay_heat(model:openmc.Model, cell_name:str="bv_cell"):
+    """ Get the decay heat from a specified cell.
+    
+    Parameters:
+    -----------
+    model : openmc.Model
+        The model to get the decay heat from.
+    cell_name : str
+        The name of the cell to get the decay heat from.
+
+    Returns:
+    --------
+    times : list
+        The times at which the decay heat was calculated.
+        Starts at 0, which is either the initial activation time or the initial decay time.
+    decay_heats : list
+        The decay heat at each time, in Watts.
+    """
+
+    openmc.config['cross_sections'] = CROSS_SECTIONS
+    openmc.config['chain_file'] = CHAIN_FILE
+    
+    results = openmc.deplete.Results("depletion_results.h5")
+
+    cell = next(iter(model._cells_by_name[cell_name]))
+    decay_heat_array = results.get_decay_heat(cell.fill)
+
+    # Limit real times to only where decay_heat_array[1] is not nan
+    times = []
+    decay_heats = []
+    for i, heat in enumerate(decay_heat_array[1]):
+        if not np.isnan(decay_heat_array[1][i]):
+            times.append(decay_heat_array[0][i])
+            decay_heats.append(decay_heat_array[1][i])
+    
+    times = times - times[0]  # start at 0
+    times = times / (60*24)  # convert from seconds to days
+    return times, decay_heats
 
 def extract_decay_photon_energies():
     # Get the decay photon energies from the depletion results
