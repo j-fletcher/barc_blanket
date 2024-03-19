@@ -249,7 +249,9 @@ def create_waste_material(tank,phase,mat_name):
                 elif nuclide[i].isalpha():
                     if nuclide[i] == 'm':
                         if nuclide[i-1].isdigit():
+                            digits += '_'
                             digits += nuclide[i]
+                            digits += '1'
                         else:
                             letters += nuclide[i]
                     else:
