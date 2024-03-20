@@ -203,7 +203,6 @@ def extract_decay_heat(model:openmc.Model, cell_name:str="bv_cell"):
             decay_heats.append(decay_heat_array[1][i])
     
     times = times - times[0]  # start at 0
-    times = times / (60*24)  # convert from seconds to days
     return times, decay_heats
 
 def extract_decay_photon_energies():

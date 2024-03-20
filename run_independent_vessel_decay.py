@@ -4,6 +4,7 @@ import openmc.deplete
 from barc_blanket.vessel_activation import run_independent_vessel_decay, extract_activities, extract_decay_heat
 import os
 import numpy as np
+import pandas as pd
 import matplotlib.pyplot as plt
 import matplotlib as mpl
 from barc_blanket.utilities import working_directory
@@ -44,8 +45,9 @@ with working_directory("independent_vessel_decay"):
     decay_model = openmc.model.Model(geometry=activated_model.geometry, 
                                      settings=activated_model.settings)
     
-    rerun_depletion = False
-    times = np.geomspace(0.01, 10, 100)
+    rerun_depletion = True
+    times = np.geomspace(0.01, 5, 100)
+    #times = [0, 0.25, 0.5, 0.75, 1, 1.5, 2, 2.5, 3]
     if not os.path.exists("depletion_results.h5") or rerun_depletion:
         run_independent_vessel_decay(decay_model, results, times=times)
 
@@ -82,7 +84,14 @@ with working_directory("independent_vessel_decay"):
     heat_times, bv_decay_heat = extract_decay_heat(decay_model, "bv_cell")
     heat_times, vv_decay_heat = extract_decay_heat(decay_model, "vv_cell")
     heat_times, first_wall_decay_heat = extract_decay_heat(decay_model, "first_wall_cell")
-    
+
+    # Convert times to days
+    heat_times_days = np.array(heat_times) / (60*60*24)
+
+    # Make a dataframe of the decay heat
+    df = pd.DataFrame({"Time [days]": heat_times_days, "Blanket Vessel [W]": bv_decay_heat, "Vacuum Vessel [W]": vv_decay_heat, "First Wall [W]": first_wall_decay_heat})
+    df.to_csv("vessel_decay_heat.csv", index=False)
+
     # # Plot the decay heat over time
     plt.figure(figsize=(8, 6))
     plt.style.use('seaborn-v0_8-poster')
