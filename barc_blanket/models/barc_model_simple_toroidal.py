@@ -9,16 +9,18 @@ from .materials import dt_plasma, flibe, enriched_flibe, burner_mixture, v4cr4ti
 # Must determine if this is a reasonable assumption
 
 DEFAULT_PARAMETERS = {
-    'major_radius': 680,         # All dimensions are in cm
-    'plasma_minor_radius': 120,
-    'sol_width': 5,
-    'first_wall_thickness': 1,   # How thick the plasma facing material is
-    'vv_thickness': 2,           # How thick the wall of the vacuum vessel is
-    'blanket_width': 20,         # Width of the material in the fusion blanket
-    'bv_thickness': 5,           # How thick the burner vessel is
+    'major_radius': 450,            # All dimensions are in cm
+    'plasma_minor_radius': 100,
+    'sol_width': 2,
+    'first_wall_thickness': 0.1,          # How thick the plasma facing material is
+    'inner_vacuum_vessel_thickness': 1,   # How thick the inner wall of the vacuum vessel is
+    'cooling_channel_width': 1,           # Width of the flowing coolant
+    'outer_vacuum_vessel_thickness': 2,   # How thick the outer wall of the vacuum vessel is
+    'blanket_width': 130,                 # Width of the bulk molten salt blanket
+    'blanket_vessel_thickness': 5,        # How thick the blanket vessel is
 
-    'li6_enrichment': 0.076,     # atom% enrichment of Li6 in the FLiBe
-    'slurry_ratio': 0.01         # wt% slurry in the burner blanket
+    'li6_enrichment': 0.076,        # atom% enrichment of Li6 in the FLiBe
+    'slurry_ratio': 0.01            # atom% slurry in the burner blanket
 }
 
 def make_model(new_model_config=None):

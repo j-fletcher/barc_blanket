@@ -1,6 +1,7 @@
 import openmc
 
 # Plasma
+
 dt_plasma = openmc.Material(name='dt_plasma')
 dt_plasma.add_nuclide('H2', 1.0)
 dt_plasma.add_nuclide('H3', 1.0)
