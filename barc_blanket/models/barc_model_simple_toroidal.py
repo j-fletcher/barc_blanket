@@ -2,7 +2,7 @@ import os
 import openmc
 import numpy as np
 
-from .materials import dt_plasma, flibe, burner_mixture, v4cr4ti, tungsten
+from materials import dt_plasma, flibe, burner_mixture, v4cr4ti, tungsten
 
 # Default model parameters
 # TODO: this all assumes a circular cross-section, which is not necessarily the case
@@ -106,7 +106,7 @@ def make_model(new_model_config=None):
     xz_plane = openmc.Plane(a=0, b=1, boundary_type='periodic')
     angled_plane = openmc.Plane(a=x_coeff, b=y_coeff, boundary_type='periodic')
     xz_plane.periodic_surface = angled_plane
-    torus_section = +xz_plane & -angled_plane
+    torus_section = +xz_plane & +angled_plane
 
     plasma_cell = openmc.Cell(
         name='plasma_cell',
@@ -202,6 +202,7 @@ def make_model(new_model_config=None):
     #####################
 
     blanket_cell_filter = openmc.CellFilter([blanket_cell])
+    tritium_cell_filter = openmc.CellFilter([cooling_channel_cell, blanket_cell])
     energy_filter = openmc.EnergyFilter(np.logspace(0,7)) # 1eV to 100MeV
 
     # mesh tally - flux
@@ -211,7 +212,7 @@ def make_model(new_model_config=None):
 
     # tbr
     tally2 = openmc.Tally(tally_id=2, name="tbr")
-    tally2.filters = [blanket_cell_filter]
+    tally2.filters = [tritium_cell_filter]
     tally2.scores = ["(n,Xt)"]
 
     #power deposition - heating-local
