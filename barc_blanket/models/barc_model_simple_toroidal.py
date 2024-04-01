@@ -7,15 +7,16 @@ from .materials import dt_plasma, flibe, burner_mixture, v4cr4ti, tungsten
 # Default model parameters
 # TODO: this all assumes a circular cross-section, which is not necessarily the case
 # Must determine if this is a reasonable assumption
+# See 'simple_toroidal.png' for a diagram of the geometry
 
 DEFAULT_PARAMETERS = {
     'major_radius': 450,            # All dimensions are in cm
     'plasma_minor_radius': 100,
     'sol_width': 2,
     'first_wall_thickness': 0.1,          # How thick the plasma facing material is
-    'inner_vacuum_vessel_thickness': 1,   # How thick the inner wall of the vacuum vessel is
+    'vacuum_vessel_thickness': 1,         # How thick the vacuum vessel is
     'cooling_channel_width': 1,           # Width of the flowing coolant
-    'outer_vacuum_vessel_thickness': 2,   # How thick the outer wall of the vacuum vessel is
+    'cooling_vessel_thickness': 2,        # How thick the cooling vessel is
     'blanket_width': 130,                 # Width of the bulk molten salt blanket
     'blanket_vessel_thickness': 8,        # How thick the blanket vessel is
 
@@ -56,7 +57,9 @@ def make_model(new_model_config=None):
     first_wall_material = tungsten()
     vacuum_vessel_material = v4cr4ti()
     flibe_material = flibe(model_config['li6_enrichment'])
-    salt_material = burner_mixture(model_config['slurry_ratio'], flibe=flibe_material)
+    cooling_channel_material = burner_mixture(model_config['slurry_ratio'], flibe=flibe_material)
+    cooling_vessel_material = v4cr4ti()
+    blanket_material = burner_mixture(model_config['slurry_ratio'], flibe=flibe_material)
     blanket_vessel_material = v4cr4ti()
     
     #####################
@@ -68,17 +71,19 @@ def make_model(new_model_config=None):
     sol_width = model_config['sol_width']
     first_wall_thickness = model_config['first_wall_thickness']
 
-    vv_thickness = model_config['vv_thickness']
+    vacuum_vessel_inner_thickness = model_config['vacuum_vessel_inner_thickness']
+    cooling_channel_width = model_config['cooling_channel_width']
+    vacuum_vessel_outer_thickness = model_config['vacuum_vessel_outer_thickness']
     blanket_width = model_config['blanket_width']
-    bv_thickness = model_config['bv_thickness']
+    blanket_vessel_thickness = model_config['blanket_vessel_thickness']
 
     plasma_surface = openmc.ZTorus(x0=0,y0=0,z0=0,a=R,b=a,c=a)
     
     first_wall_inner_radius = a + sol_width
     first_wall_inner_surface = openmc.ZTorus(x0=0,y0=0,z0=0,a=R,b=first_wall_inner_radius,c=first_wall_inner_radius)
 
-    vv_inner_radius = first_wall_inner_radius + first_wall_thickness
-    vv_outer_radius = vv_inner_radius + vv_thickness
+    vacuum_vessel_inner_radius = first_wall_inner_radius + first_wall_thickness
+    vacuum_vessel_outer_radius = vacuum_vessel_inner_radius + vacuum_vessel_thickness
     vv_inner_surface = openmc.ZTorus(x0=0,y0=0,z0=0,a=R,b=vv_inner_radius,c=vv_inner_radius)
     vv_outer_surface = openmc.ZTorus(x0=0,y0=0,z0=0,a=R,b=vv_outer_radius,c=vv_outer_radius)
 
@@ -89,15 +94,24 @@ def make_model(new_model_config=None):
 
     bounding_sphere_surface = openmc.Sphere(r=2*R, boundary_type="vacuum")
 
+    # Make two planes to cut the torus into a section
+    # Angle follows right hand rule around z axis (https://www.desmos.com/3d/214a6bb908)
+    section_angle_rad = np.radians(model_config['section_angle'])
+    x_coeff, y_coeff = np.sin(section_angle_rad), -np.cos(section_angle_rad)
+    xz_plane = openmc.Plane(a=0, b=1, boundary_type='periodic')
+    angled_plane = openmc.Plane(a=x_coeff, b=y_coeff, boundary_type='periodic')
+    xz_plane.periodic_surface = angled_plane
+    torus_section = +xz_plane & -angled_plane
+
     plasma_cell = openmc.Cell(
         name='plasma_cell',
-        region=-plasma_surface,
+        region=-plasma_surface & torus_section,
         fill=plasma_material
     )
 
     sol_cell = openmc.Cell(
         name='sol_cell',
-        region=+plasma_surface & -first_wall_inner_surface,
+        region=+plasma_surface & -first_wall_inner_surface & torus_section,
         fill=None
     )
 
