@@ -71,9 +71,9 @@ def make_model(new_model_config=None):
     sol_width = model_config['sol_width']
     first_wall_thickness = model_config['first_wall_thickness']
 
-    vacuum_vessel_inner_thickness = model_config['vacuum_vessel_inner_thickness']
+    vacuum_vessel_thickness = model_config['vacuum_vessel_thickness']
     cooling_channel_width = model_config['cooling_channel_width']
-    vacuum_vessel_outer_thickness = model_config['vacuum_vessel_outer_thickness']
+    cooling_vessel_thickness = model_config['cooling_vessel_thickness']
     blanket_width = model_config['blanket_width']
     blanket_vessel_thickness = model_config['blanket_vessel_thickness']
 
@@ -84,13 +84,18 @@ def make_model(new_model_config=None):
 
     vacuum_vessel_inner_radius = first_wall_inner_radius + first_wall_thickness
     vacuum_vessel_outer_radius = vacuum_vessel_inner_radius + vacuum_vessel_thickness
-    vv_inner_surface = openmc.ZTorus(x0=0,y0=0,z0=0,a=R,b=vv_inner_radius,c=vv_inner_radius)
-    vv_outer_surface = openmc.ZTorus(x0=0,y0=0,z0=0,a=R,b=vv_outer_radius,c=vv_outer_radius)
+    vacuum_vessel_inner_surface = openmc.ZTorus(x0=0,y0=0,z0=0,a=R,b=vacuum_vessel_inner_radius,c=vacuum_vessel_inner_radius)
+    vacuum_vessel_outer_surface = openmc.ZTorus(x0=0,y0=0,z0=0,a=R,b=vacuum_vessel_outer_radius,c=vacuum_vessel_outer_radius)
 
-    bv_inner_radius = vv_outer_radius+blanket_width
-    bv_outer_radius = bv_inner_radius+bv_thickness
-    bv_inner_surface = openmc.ZTorus(x0=0,y0=0,z0=0,a=R,b=bv_inner_radius,c=bv_inner_radius)
-    bv_outer_surface = openmc.ZTorus(x0=0,y0=0,z0=0,a=R,b=bv_outer_radius,c=bv_outer_radius)
+    cooling_vessel_inner_radius = vacuum_vessel_outer_radius+cooling_channel_width
+    cooling_vessel_outer_radius = cooling_vessel_inner_radius + cooling_vessel_thickness
+    cooling_vessel_inner_surface = openmc.ZTorus(x0=0,y0=0,z0=0,a=R,b=cooling_vessel_inner_radius,c=cooling_vessel_inner_radius)
+    cooling_vessel_outer_surface = openmc.ZTorus(x0=0,y0=0,z0=0,a=R,b=cooling_vessel_outer_radius,c=cooling_vessel_outer_radius)
+
+    blanket_vessel_inner_radius = cooling_vessel_outer_radius+blanket_width
+    blanket_vessel_outer_radius = blanket_vessel_inner_radius + blanket_vessel_thickness
+    blanket_vessel_inner_surface = openmc.ZTorus(x0=0,y0=0,z0=0,a=R,b=blanket_vessel_inner_radius,c=blanket_vessel_inner_radius)
+    blanket_vessel_outer_surface = openmc.ZTorus(x0=0,y0=0,z0=0,a=R,b=blanket_vessel_outer_radius,c=blanket_vessel_outer_radius)
 
     bounding_sphere_surface = openmc.Sphere(r=2*R, boundary_type="vacuum")
 
@@ -117,31 +122,43 @@ def make_model(new_model_config=None):
 
     first_wall_cell = openmc.Cell(
         name='first_wall_cell',
-        region=+first_wall_inner_surface & -vv_inner_surface,
+        region=+first_wall_inner_surface & -vacuum_vessel_inner_surface & torus_section,
         fill=first_wall_material
     )
 
-    vv_cell = openmc.Cell(
-        name='vv_cell',
-        region=+vv_inner_surface & -vv_outer_surface,
-        fill=vv_material
+    vacuum_vessel_cell = openmc.Cell(
+        name='vacuum_vessel_cell',
+        region=+vacuum_vessel_inner_surface & -vacuum_vessel_outer_surface & torus_section,
+        fill=vacuum_vessel_material
+    )
+
+    cooling_channel_cell = openmc.Cell(
+        name='cooling_channel_cell',
+        region=+vacuum_vessel_outer_surface & -cooling_vessel_inner_surface & torus_section,
+        fill=cooling_channel_material
+    )
+
+    cooling_vessel_cell = openmc.Cell(
+        name='cooling_vessel_cell',
+        region=+cooling_vessel_inner_surface & -cooling_vessel_outer_surface & torus_section,
+        fill=cooling_vessel_material
     )
 
     blanket_cell = openmc.Cell(
         name='blanket_cell',
-        region=+vv_outer_surface & -bv_inner_surface,
+        region=+cooling_vessel_outer_surface & -blanket_vessel_inner_surface & torus_section,
         fill=blanket_material
     )
 
-    bv_cell = openmc.Cell(
-        name='bv_cell',
-        region=+bv_inner_surface & -bv_outer_surface,
-        fill=bv_material
+    blanket_vessel_cell = openmc.Cell(
+        name='blanket_vessel_cell',
+        region=+blanket_vessel_inner_surface & -blanket_vessel_outer_surface & torus_section,
+        fill=blanket_vessel_material
     )
 
     bounding_sphere_cell = openmc.Cell(
         name='bounding_sphere_cell',
-        region=+bv_outer_surface & -bounding_sphere_surface,
+        region=+blanket_vessel_outer_surface & -bounding_sphere_surface & torus_section,
         fill=None
     )
 
@@ -149,9 +166,11 @@ def make_model(new_model_config=None):
     universe.add_cell(plasma_cell)
     universe.add_cell(sol_cell)
     universe.add_cell(first_wall_cell)
-    universe.add_cell(vv_cell)
+    universe.add_cell(vacuum_vessel_cell)
+    universe.add_cell(cooling_channel_cell)
+    universe.add_cell(cooling_vessel_cell)
     universe.add_cell(blanket_cell)
-    universe.add_cell(bv_cell)
+    universe.add_cell(blanket_vessel_cell)
     universe.add_cell(bounding_sphere_cell)
     geometry = openmc.Geometry(universe)
 
