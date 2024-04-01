@@ -2,7 +2,7 @@ import os
 import openmc
 import numpy as np
 
-from .materials import dt_plasma, flibe, enriched_flibe, burner_mixture, v4cr4ti, tungsten
+from .materials import dt_plasma, flibe, burner_mixture, v4cr4ti, tungsten
 
 # Default model parameters
 # TODO: this all assumes a circular cross-section, which is not necessarily the case
@@ -17,7 +17,9 @@ DEFAULT_PARAMETERS = {
     'cooling_channel_width': 1,           # Width of the flowing coolant
     'outer_vacuum_vessel_thickness': 2,   # How thick the outer wall of the vacuum vessel is
     'blanket_width': 130,                 # Width of the bulk molten salt blanket
-    'blanket_vessel_thickness': 5,        # How thick the blanket vessel is
+    'blanket_vessel_thickness': 8,        # How thick the blanket vessel is
+
+    'section_angle': 45,            # Angle of the toroidal section in degrees
 
     'li6_enrichment': 0.076,        # atom% enrichment of Li6 in the FLiBe
     'slurry_ratio': 0.01            # atom% slurry in the burner blanket
@@ -50,11 +52,12 @@ def make_model(new_model_config=None):
     ## Assign Materials##
     #####################
 
-    plasma_material = dt_plasma
-    first_wall_material = tungsten
-    vv_material = v4cr4ti
-    blanket_material = burner_mixture(model_config['slurry_ratio'], flibe)
-    bv_material = v4cr4ti
+    plasma_material = dt_plasma()
+    first_wall_material = tungsten()
+    vacuum_vessel_material = v4cr4ti()
+    flibe_material = flibe(model_config['li6_enrichment'])
+    salt_material = burner_mixture(model_config['slurry_ratio'], flibe=flibe_material)
+    blanket_vessel_material = v4cr4ti()
     
     #####################
     ## Define Geometry ##
@@ -64,6 +67,7 @@ def make_model(new_model_config=None):
     a = model_config['plasma_minor_radius']
     sol_width = model_config['sol_width']
     first_wall_thickness = model_config['first_wall_thickness']
+
     vv_thickness = model_config['vv_thickness']
     blanket_width = model_config['blanket_width']
     bv_thickness = model_config['bv_thickness']
