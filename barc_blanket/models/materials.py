@@ -9,14 +9,13 @@ def dt_plasma():
     return dt_plasma
 
 # FLIBE
-def flibe():
-    flibe = openmc.Material(name="flibe")
-    flibe.depletable=True
-    
 
 def flibe(li6_enrichment=None):
     flibe = openmc.Material(name="flibe")
     flibe.depletable=True
+    flibe.add_element("Be", 1.0, "ao")
+    flibe.add_element("F", 4.0, "ao")
+
     if li6_enrichment is None:
         flibe.add_element("Li", 2.0, "ao")
     else:
@@ -24,8 +23,7 @@ def flibe(li6_enrichment=None):
                         enrichment=li6_enrichment, 
                         enrichment_target="Li6", 
                         enrichment_type="ao")
-    flibe.add_element("Be", 1.0, "ao")
-    flibe.add_element("F", 4.0, "ao")
+
     flibe.set_density("g/cm3", 1.94)
     return flibe
 
@@ -95,7 +93,7 @@ def water():
 
 # Raw tank contents, do however you want to define this
 # For now just say it's natural uranium TODO can change this to be whatever
-def tank_contents():
+def simple_tank_contents():
     tank_contents = openmc.Material(name='tank_contents')
     tank_contents.depletable = True
     tank_contents.add_nuclide('U235', 0.0072)
@@ -104,13 +102,15 @@ def tank_contents():
     return tank_contents
 
 # Tank slurry contents
-def burner_mixture(slurry_ratio, flibe=flibe()):
+def burner_mixture(slurry_ratio, tank_contents=simple_tank_contents(), flibe=flibe()):
     """Create a mixture of flibe and tank contents for the burner blanket
     
     Parameters:
     ----------
     slurry_ratio : float
         The weight percent of slurry in the burner blanket
+    tank_contents : openmc.Material, optional
+        The tank contents to use in the mixture. Default is natural uranium.
     flibe : openmc.Material, optional
         The FLiBe material to use in the mixture. Default is the standard FLiBe material.
         Can pass in enriched flibe if desired
