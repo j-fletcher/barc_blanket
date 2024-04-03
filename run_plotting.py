@@ -2,7 +2,7 @@
 import openmc
 import barc_blanket.plot_cross_sections as pltxs
 
-openmc.config['cross_sections'] = '/home/zkeith/proj/openmc_test/endfb-viii.0-hdf5/cross_sections.xml'
+openmc.config['cross_sections'] = '/home/zkeith/openmc_resources/endfb-viii.0-hdf5/cross_sections.xml'
 
 # 1. make a simple 'enriched uranium' material to compare results with
 uranium_fuel = openmc.Material(name='Uranium Fuel')

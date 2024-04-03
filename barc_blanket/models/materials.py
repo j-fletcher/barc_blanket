@@ -9,21 +9,22 @@ def dt_plasma():
     return dt_plasma
 
 # FLIBE
+
 def flibe(li6_enrichment=None):
     flibe = openmc.Material(name="flibe")
     flibe.depletable=True
     flibe.add_element("Be", 1.0, "ao")
     flibe.add_element("F", 4.0, "ao")
-    flibe.set_density("g/cm3", 1.94)
 
     if li6_enrichment is None:
         flibe.add_element("Li", 2.0, "ao")
     else:
         flibe.add_element("Li", 2.0, "ao", 
-                    enrichment=li6_enrichment, 
-                    enrichment_target="Li6", 
-                    enrichment_type="ao")
+                        enrichment=li6_enrichment, 
+                        enrichment_target="Li6", 
+                        enrichment_type="ao")
 
+    flibe.set_density("g/cm3", 1.94)
     return flibe
 
 # Inconel 718 -
@@ -91,7 +92,7 @@ def water():
     return water
 
 # Raw tank contents, do however you want to define this
-# For now just say it's natural uranium TODO can change this to be whatever, or make a function for it
+# For now just say it's natural uranium TODO can change this to be whatever
 def simple_tank_contents():
     tank_contents = openmc.Material(name='tank_contents')
     tank_contents.depletable = True
@@ -123,7 +124,7 @@ def burner_mixture(slurry_ratio, tank_contents=simple_tank_contents(), flibe=fli
     flibe_ao = 1 - slurry_ratio
 
     burner_mixture = openmc.Material.mix_materials(
-        [flibe, tank_contents],
+        [flibe, tank_contents()],
         [flibe_ao, slurry_ratio],
         'ao',
         name="burner_mixture"
