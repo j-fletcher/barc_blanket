@@ -12,6 +12,7 @@ dependencies:
   - dash
   - plotly
   - pip
+  - warnings
   - yaml ==0.2.5
   - optuna ==3.5.0
   - scipy ==1.11.4
