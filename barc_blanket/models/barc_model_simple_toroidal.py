@@ -10,8 +10,8 @@ from materials import dt_plasma, flibe, burner_mixture, v4cr4ti, tungsten
 # See 'simple_toroidal.png' for a diagram of the geometry
 
 DEFAULT_PARAMETERS = {
-    'major_radius': 450,            # All dimensions are in cm
-    'plasma_minor_radius': 100,
+    'major_radius': 420,            # All dimensions are in cm
+    'plasma_minor_radius': 138,
     'sol_width': 2,
     'first_wall_thickness': 0.1,          # How thick the plasma facing material is
     'vacuum_vessel_thickness': 1,         # How thick the vacuum vessel is
