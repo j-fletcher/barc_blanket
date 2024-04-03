@@ -124,7 +124,7 @@ def burner_mixture(slurry_ratio, tank_contents=simple_tank_contents(), flibe=fli
     flibe_ao = 1 - slurry_ratio
 
     burner_mixture = openmc.Material.mix_materials(
-        [flibe, tank_contents()],
+        [flibe, tank_contents],
         [flibe_ao, slurry_ratio],
         'ao',
         name="burner_mixture"

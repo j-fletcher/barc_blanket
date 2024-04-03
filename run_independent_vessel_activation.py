@@ -21,24 +21,20 @@ with working_directory("independent_vessel_activation"):
     if not os.path.exists("depletion_results.h5") or rerun_depletion:
         run_independent_vessel_activation(model, times=times)
 
-    nuclide_times, nuclides = extract_nuclides(model, cell_name="bv_cell", nuclide_names=["V49"])
-
-    #normalized_nuclides = {}
-    #for key in nuclides:
-    #    normalized_nuclides[key] = (nuclides[key] - nuclides[key][0]) / nuclides[key][0]
+    nuclide_times, nuclides = extract_nuclides(model, cell_name="blanket_vessel_cell", nuclide_names=["V49"])
 
     # Plot the change in nuclide concentration over time
     fig, ax = plt.subplots()
     for key in nuclides:
         ax.plot(nuclide_times, nuclides[key], label=key)
 
-    ax.set_xlabel("Time (days)")
+    ax.set_xlabel("Time [days]")
     ax.set_ylabel("Nuclide Count")
     ax.set_title("Nuclide Atom Count over Time")
     ax.legend(loc='upper right')
     fig.savefig("nuclide_concentration.png")
 
-    activity_times, bv_activities = extract_activities(model, "bv_cell")
+    activity_times, blanket_vessel_activities = extract_activities(model, "blanket_vessel_cell")
 
     # # Plot the activities over time
 
@@ -49,18 +45,18 @@ with working_directory("independent_vessel_activation"):
     plt.grid(True, color='w', linestyle='-', linewidth=1.5)
     plt.gca().patch.set_facecolor('0.92')
 
-    plt.plot(activity_times, bv_activities[1], label="Blanket Vessel")
+    plt.plot(activity_times, blanket_vessel_activities[1], label="Blanket Vessel")
     plt.legend(loc='right')
     plt.xlabel("Time [days]")
     plt.ylabel("Activity [Bq]")
     plt.title("Vessel Activation")
     plt.yscale('symlog', linthresh=1e12)
     plt.xlim(0, max(activity_times))
-    plt.ylim(0, max(bv_activities[1])*1.01)
+    plt.ylim(0, max(blanket_vessel_activities[1])*1.01)
     
 
     # Save figure
-    plt.savefig("vessel_activation.png")
+    plt.savefig("blanket_vessel_activation.png")
 
     plt.rcParams.update(mpl.rcParamsDefault)
     

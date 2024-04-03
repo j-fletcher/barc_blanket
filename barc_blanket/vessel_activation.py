@@ -34,8 +34,8 @@ def run_independent_vessel_activation(model:openmc.Model, days=365, num_timestep
 
     # Obtain a pointer to the vacuum vessel cell
     first_wall_cell = next(iter(model._cells_by_name["first_wall_cell"]))
-    vv_cell = next(iter(model._cells_by_name["vv_cell"]))
-    bv_cell = next(iter(model._cells_by_name["bv_cell"]))
+    vacuum_vessel_cell = next(iter(model._cells_by_name["vacuum_vessel_cell"]))
+    blanket_vessel_cell = next(iter(model._cells_by_name["blanket_vessel_cell"]))
 
     # Check if flux and microscopic cross sections are present.
     # If not, calculate them
@@ -43,31 +43,31 @@ def run_independent_vessel_activation(model:openmc.Model, days=365, num_timestep
     fluxes_file = 'fluxes.npy'
     # TODO: should be able to programmatically put all the microxs in one file, but for now we'll just do it separately
     first_wall_file = 'first_wall_microxs.csv'
-    vv_microxs_file = 'vv_microxs.csv'
-    bv_microxs_file = 'bv_microxs.csv'
-    if os.path.exists(fluxes_file) and os.path.exists(first_wall_file) and os.path.exists(vv_microxs_file) and os.path.exists(bv_microxs_file):
+    vacuum_vessel_microxs_file = 'vacuum_vessel_microxs.csv'
+    blanket_vessel_microxs_file = 'blanket_vessel_microxs.csv'
+    if os.path.exists(fluxes_file) and os.path.exists(first_wall_file) and os.path.exists(vacuum_vessel_microxs_file) and os.path.exists(blanket_vessel_microxs_file):
         with open(fluxes_file, 'rb') as f:
             fluxes = np.load(fluxes_file)
         with open(first_wall_file, 'rb') as f:
             first_wall_microxs = openmc.deplete.MicroXS.from_csv(first_wall_file)
-        with open(vv_microxs_file, 'rb') as f:
-            vv_microxs = openmc.deplete.MicroXS.from_csv(vv_microxs_file)
-        with open(bv_microxs_file, 'rb') as f:
-            bv_microxs = openmc.deplete.MicroXS.from_csv(bv_microxs_file)
+        with open(vacuum_vessel_microxs_file, 'rb') as f:
+            vacuum_vessel_microxs = openmc.deplete.MicroXS.from_csv(vacuum_vessel_microxs_file)
+        with open(blanket_vessel_microxs_file, 'rb') as f:
+            blanket_vessel_microxs = openmc.deplete.MicroXS.from_csv(blanket_vessel_microxs_file)
     else:
-        fluxes, microxs = openmc.deplete.get_microxs_and_flux(model, [first_wall_cell, vv_cell, bv_cell])
+        fluxes, microxs = openmc.deplete.get_microxs_and_flux(model, [first_wall_cell, vacuum_vessel_cell, blanket_vessel_cell])
         np.save(fluxes_file, fluxes)
         first_wall_microxs = microxs[0]
-        vv_microxs = microxs[1]
-        bv_microxs = microxs[2]
+        vacuum_vessel_microxs = microxs[1]
+        blanket_vessel_microxs = microxs[2]
         first_wall_microxs.to_csv(first_wall_file)
-        vv_microxs.to_csv(vv_microxs_file)
-        bv_microxs.to_csv(bv_microxs_file)
+        vacuum_vessel_microxs.to_csv(vacuum_vessel_microxs_file)
+        blanket_vessel_microxs.to_csv(blanket_vessel_microxs_file)
 
     # Perform depletion (CHECK NORMALIZATION MODE)
-    operator = openmc.deplete.IndependentOperator(openmc.Materials([first_wall_cell.fill, vv_cell.fill, bv_cell.fill]),
+    operator = openmc.deplete.IndependentOperator(openmc.Materials([first_wall_cell.fill, vacuum_vessel_cell.fill, blanket_vessel_cell.fill]),
                                                     fluxes,
-                                                    [first_wall_microxs, vv_microxs, bv_microxs],
+                                                    [first_wall_microxs, vacuum_vessel_microxs, blanket_vessel_microxs],
                                                     normalization_mode='source-rate',
                                                     reduce_chain=True,
                                                     reduce_chain_level=5) # TODO: figure out what this does and why we set to 5
@@ -107,31 +107,31 @@ def run_independent_vessel_decay(model:openmc.Model, results, days=365, num_time
 
     # Obtain a pointer to the vessel cells
     first_wall_cell = next(iter(model._cells_by_name["first_wall_cell"]))
-    vv_cell = next(iter(model._cells_by_name["vv_cell"]))
-    bv_cell = next(iter(model._cells_by_name["bv_cell"]))
+    vacuum_vessel_cell = next(iter(model._cells_by_name["vacuum_vessel_cell"]))
+    blanket_vessel_cell = next(iter(model._cells_by_name["blanket_vessel_cell"]))
 
     # This is a hack until I can figure out how to make it actually work
     fluxes_file = '../independent_vessel_activation/fluxes.npy'
     # TODO: should be able to programmatically put all the microxs in one file, but for now we'll just do it separately
     first_wall_file = '../independent_vessel_activation/first_wall_microxs.csv'
-    vv_microxs_file = '../independent_vessel_activation/vv_microxs.csv'
-    bv_microxs_file = '../independent_vessel_activation/bv_microxs.csv'
-    if os.path.exists(fluxes_file) and os.path.exists(first_wall_file) and os.path.exists(vv_microxs_file) and os.path.exists(bv_microxs_file):
+    vacuum_vessel_microxs_file = '../independent_vessel_activation/vacuum_vessel_microxs.csv'
+    blanket_vessel_microxs_file = '../independent_vessel_activation/blanket_vessel_microxs.csv'
+    if os.path.exists(fluxes_file) and os.path.exists(first_wall_file) and os.path.exists(vacuum_vessel_microxs_file) and os.path.exists(blanket_vessel_microxs_file):
         with open(fluxes_file, 'rb') as f:
             fluxes = np.load(fluxes_file)
         with open(first_wall_file, 'rb') as f:
             first_wall_microxs = openmc.deplete.MicroXS.from_csv(first_wall_file)
-        with open(vv_microxs_file, 'rb') as f:
-            vv_microxs = openmc.deplete.MicroXS.from_csv(vv_microxs_file)
-        with open(bv_microxs_file, 'rb') as f:
-            bv_microxs = openmc.deplete.MicroXS.from_csv(bv_microxs_file)
+        with open(vacuum_vessel_microxs_file, 'rb') as f:
+            vacuum_vessel_microxs = openmc.deplete.MicroXS.from_csv(vacuum_vessel_microxs_file)
+        with open(blanket_vessel_microxs_file, 'rb') as f:
+            blanket_vessel_microxs = openmc.deplete.MicroXS.from_csv(blanket_vessel_microxs_file)
 
     fluxes = np.zeros(fluxes.shape)
 
     # Perform depletion (CHECK NORMALIZATION MODE)
-    operator = openmc.deplete.IndependentOperator(openmc.Materials([first_wall_cell.fill, vv_cell.fill, bv_cell.fill]),
+    operator = openmc.deplete.IndependentOperator(openmc.Materials([first_wall_cell.fill, vacuum_vessel_cell.fill, blanket_vessel_cell.fill]),
                                                     fluxes,
-                                                    [first_wall_microxs, vv_microxs, bv_microxs],
+                                                    [first_wall_microxs, vacuum_vessel_microxs, blanket_vessel_microxs],
                                                     normalization_mode='source-rate',
                                                     prev_results=results,
                                                     reduce_chain=True,
@@ -150,7 +150,7 @@ def run_independent_vessel_decay(model:openmc.Model, results, days=365, num_time
     
     integrator.integrate()
 
-def extract_activities(model:openmc.Model, cell_name:str="bv_cell"):
+def extract_activities(model:openmc.Model, cell_name:str="blanket_vessel_cell"):
     # Get the total activity from a specified cell
     # Another thing taken from John: https://github.com/jlball/arc-nonproliferation/commit/04de395e19fd30344d9e5b2366918e149593b5d0
     openmc.config['cross_sections'] = CROSS_SECTIONS
@@ -167,7 +167,7 @@ def extract_activities(model:openmc.Model, cell_name:str="bv_cell"):
 
     return times, activities
 
-def extract_decay_heat(model:openmc.Model, cell_name:str="bv_cell"):
+def extract_decay_heat(model:openmc.Model, cell_name:str="blanket_vessel_cell"):
     """ Get the decay heat from a specified cell.
     
     Parameters:
@@ -217,14 +217,14 @@ def extract_decay_photon_energies():
     for i, time in enumerate(times):
         materials = results.export_to_materials(i)
 
-        vv_material = materials[0]
+        vacuum_vessel_material = materials[0]
 
-        activities[i] = vv_material.get_activity()
-        dists.append(vv_material.get_decay_photon_energy())
+        activities[i] = vacuum_vessel_material.get_activity()
+        dists.append(vacuum_vessel_material.get_decay_photon_energy())
 
     return times, dists
 
-def extract_original_nuclides(model:openmc.Model, cell_name:str="bv_cell"):
+def extract_original_nuclides(model:openmc.Model, cell_name:str="blanket_vessel_cell"):
     openmc.config['cross_sections'] = CROSS_SECTIONS
     openmc.config['chain_file'] = CHAIN_FILE
 
@@ -239,7 +239,7 @@ def extract_original_nuclides(model:openmc.Model, cell_name:str="bv_cell"):
 
     return times, nuc_atoms
 
-def extract_nuclides(model:openmc.Model, cell_name:str="bv_cell", nuclide_names:list=["H-3", "He-4"]):
+def extract_nuclides(model:openmc.Model, cell_name:str="blanket_vessel_cell", nuclide_names:list=["H-3", "He-4"]):
     openmc.config['cross_sections'] = CROSS_SECTIONS
     openmc.config['chain_file'] = CHAIN_FILE
 
