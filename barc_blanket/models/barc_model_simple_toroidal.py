@@ -44,19 +44,9 @@ def make_model(new_model_config=None):
             if key not in new_model_config:
                 model_config[key] = DEFAULT_PARAMETERS[key]
 
-    #####################
-    ## Assign Materials##
-    #####################
-
-    plasma_material = dt_plasma
-    first_wall_material = tungsten
-    vv_material = v4cr4ti
-    blanket_material = burner_mixture(model_config['slurry_ratio'], flibe)
-    bv_material = v4cr4ti
-    
-    #####################
-    ## Define Geometry ##
-    #####################
+    ######################
+    ## Define Constants ##
+    ######################
 
     R = model_config['major_radius']
     a = model_config['plasma_minor_radius']
@@ -65,6 +55,33 @@ def make_model(new_model_config=None):
     vv_thickness = model_config['vv_thickness']
     blanket_width = model_config['blanket_width']
     bv_thickness = model_config['bv_thickness']
+
+    #####################
+    ## Assign Materials##
+    #####################
+
+    plasma_material = dt_plasma
+    plasma_material.volume = 2*np.pi**2*R*a**2
+
+    first_wall_material = tungsten
+    first_wall_radius = a+sol_width+first_wall_thickness
+    first_wall_material.volume = 2*np.pi**2*R*((first_wall_radius)**2 - (first_wall_radius-first_wall_thickness)**2)
+
+    vv_material = v4cr4ti
+    vv_radius = a+sol_width+first_wall_thickness+vv_thickness
+    vv_material.volume = 2*np.pi**2*R*((vv_radius)**2 - (vv_radius-vv_thickness)**2)
+
+    blanket_material = burner_mixture(model_config['slurry_ratio'], flibe)
+    blanket_radius = a+sol_width+first_wall_thickness+vv_thickness+blanket_width
+    blanket_material.volume = 2*np.pi**2*R*((blanket_radius)**2 - (blanket_radius-blanket_width)**2)
+
+    bv_material = v4cr4ti
+    bv_radius = a+sol_width+first_wall_thickness+vv_thickness+blanket_width+bv_thickness
+    bv_material.volume = 2*np.pi**2*R*((bv_radius)**2 - (bv_radius-bv_thickness)**2)
+    
+    ##########################
+    ## Build Model Geometry ##
+    ##########################
 
     plasma_surface = openmc.ZTorus(x0=0,y0=0,z0=0,a=R,b=a,c=a)
     
