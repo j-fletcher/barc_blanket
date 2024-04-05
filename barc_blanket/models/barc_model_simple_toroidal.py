@@ -9,7 +9,7 @@ from .materials import dt_plasma, flibe, enriched_flibe, burner_mixture, v4cr4ti
 # Must determine if this is a reasonable assumption
 
 DEFAULT_PARAMETERS = {
-    'major_radius': 680,         # All dimensions are in cm
+    'major_radius': 450,         # All dimensions are in cm
     'plasma_minor_radius': 120,
     'sol_width': 5,
     'first_wall_thickness': 1,   # How thick the plasma facing material is
@@ -170,7 +170,7 @@ def make_model(new_model_config=None):
     settings.photon_transport = False
     settings.source = source
     settings.batches = 50
-    settings.particles = int(1e5) # modify this to shorten simulation, default was 1e6 
+    settings.particles = int(1e4) # modify this to shorten simulation, default was 1e6 
     settings.statepoint = {'batches': [
         5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100]}
     settings.output = {'tallies': True}
