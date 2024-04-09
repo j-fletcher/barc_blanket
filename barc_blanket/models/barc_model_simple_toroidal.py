@@ -51,6 +51,8 @@ def make_model(new_model_config=None):
         for key in DEFAULT_PARAMETERS:
             if key not in new_model_config:
                 model_config[key] = DEFAULT_PARAMETERS[key]
+            else:
+                print(f"Using set value for {key}:\t {model_config[key]}")
 
     #####################
     ## Assign Materials##
@@ -190,12 +192,13 @@ def make_model(new_model_config=None):
 
     source = openmc.IndependentSource()
     source.particle = 'neutron'
-    radius = openmc.stats.Discrete([R], [1]) # centered at major radius
+    # This source shape is a thin wire in the plasma core
+    radius = openmc.stats.Discrete([R], [1])
     z_values = openmc.stats.Discrete([0], [1])
-    angle = openmc.stats.Uniform(a=np.radians(0), b=np.radians(360))
+    angle = openmc.stats.Uniform(a=np.radians(0), b=section_angle_rad)
     source.space = openmc.stats.CylindricalIndependent(
         r=radius, phi=angle, z=z_values, origin=(0., 0., 0.))
-    source.angle = openmc.stats.Isotropic()
+    source.angle = openmc.stats.Isotropic() # Isotropic directio neutron is launched
     source.energy = openmc.stats.muir(e0=14.08e6, m_rat=5, kt=20000)
 
     settings = openmc.Settings(run_mode='fixed source')
