@@ -2,7 +2,7 @@ import os
 import openmc
 import numpy as np
 
-from materials import dt_plasma, flibe, burner_mixture, v4cr4ti, tungsten
+from .materials import dt_plasma, flibe, burner_mixture, v4cr4ti, tungsten
 
 # Default model parameters
 # TODO: this all assumes a circular cross-section, which is not necessarily the case
@@ -13,7 +13,7 @@ DEFAULT_PARAMETERS = {
     'major_radius': 420,            # All dimensions are in cm
     'plasma_minor_radius': 138,
     'sol_width': 2,
-    'first_wall_thickness': 0.1,          # How thick the plasma facing material is
+    'first_wall_thickness': 1,           # How thick the plasma facing material is
     'vacuum_vessel_thickness': 1,         # How thick the vacuum vessel is
     'cooling_channel_width': 1,           # Width of the flowing coolant
     'cooling_vessel_thickness': 2,        # How thick the cooling vessel is
@@ -111,6 +111,8 @@ def make_model(new_model_config=None):
     xz_plane.periodic_surface = angled_plane
     torus_section = +xz_plane & +angled_plane
 
+    volume_correction = model_config['section_angle']/360
+
     plasma_cell = openmc.Cell(
         name='plasma_cell',
         region=-plasma_surface & torus_section,
@@ -128,14 +130,14 @@ def make_model(new_model_config=None):
         region=+first_wall_inner_surface & -vacuum_vessel_inner_surface & torus_section,
         fill=first_wall_material
     )
-    first_wall_cell.fill.volume = (2*np.pi*R)*np.pi*(vacuum_vessel_inner_radius**2 - first_wall_inner_radius**2)
+    first_wall_cell.fill.volume = (2*np.pi*R)*np.pi*(vacuum_vessel_inner_radius**2 - first_wall_inner_radius**2)*volume_correction
 
     vacuum_vessel_cell = openmc.Cell(
         name='vacuum_vessel_cell',
         region=+vacuum_vessel_inner_surface & -vacuum_vessel_outer_surface & torus_section,
         fill=vacuum_vessel_material
     )
-    vacuum_vessel_cell.fill.volume = (2*np.pi*R)*np.pi*(vacuum_vessel_outer_radius**2 - vacuum_vessel_inner_radius**2)
+    vacuum_vessel_cell.fill.volume = (2*np.pi*R)*np.pi*(vacuum_vessel_outer_radius**2 - vacuum_vessel_inner_radius**2)*volume_correction
 
     cooling_channel_cell = openmc.Cell(
         name='cooling_channel_cell',
@@ -148,7 +150,7 @@ def make_model(new_model_config=None):
         region=+cooling_vessel_inner_surface & -cooling_vessel_outer_surface & torus_section,
         fill=cooling_vessel_material
     )
-    cooling_vessel_cell.fill.volume = (2*np.pi*R)*np.pi*(cooling_vessel_outer_radius**2 - cooling_vessel_inner_radius**2)
+    cooling_vessel_cell.fill.volume = (2*np.pi*R)*np.pi*(cooling_vessel_outer_radius**2 - cooling_vessel_inner_radius**2)*volume_correction
     
 
     blanket_cell = openmc.Cell(
@@ -162,7 +164,7 @@ def make_model(new_model_config=None):
         region=+blanket_vessel_inner_surface & -blanket_vessel_outer_surface & torus_section,
         fill=blanket_vessel_material
     )
-    blanket_vessel_cell.fill.volume = (2*np.pi*R)*np.pi*(blanket_vessel_outer_radius**2 - blanket_vessel_inner_radius**2)
+    blanket_vessel_cell.fill.volume = (2*np.pi*R)*np.pi*(blanket_vessel_outer_radius**2 - blanket_vessel_inner_radius**2)*volume_correction
 
     bounding_sphere_cell = openmc.Cell(
         name='bounding_sphere_cell',
@@ -211,6 +213,8 @@ def make_model(new_model_config=None):
     ## Define Tallies  ##
     #####################
 
+    first_wall_cell_filter = openmc.CellFilter([first_wall_cell])
+    vacuum_vessel_cell_filter = openmc.CellFilter([vacuum_vessel_cell])
     blanket_cell_filter = openmc.CellFilter([blanket_cell])
     tritium_cell_filter = openmc.CellFilter([cooling_channel_cell, blanket_cell])
     energy_filter = openmc.EnergyFilter(np.logspace(0,7)) # 1eV to 100MeV
@@ -226,11 +230,15 @@ def make_model(new_model_config=None):
     tally2.scores = ["(n,Xt)"]
 
     #power deposition - heating-local
-    tally3 = openmc.Tally(tally_id=3, name="heating_burner")
-    tally3.filters = [blanket_cell_filter]
-    tally3.scores = ["heating-local"]
+    first_wall_heating_tally = openmc.Tally(tally_id=3, name="neutron_heating_first_wall")
+    first_wall_heating_tally.filters = [first_wall_cell_filter]
+    first_wall_heating_tally.scores = ["heating-local"]
 
-    tallies = openmc.Tallies([tally1,tally2,tally3]) 
+    vacuum_vessel_heating_tally = openmc.Tally(tally_id=4, name="neutron_heating_vacuum_vessel")
+    vacuum_vessel_heating_tally.filters = [vacuum_vessel_cell_filter]
+    vacuum_vessel_heating_tally.scores = ["heating-local"]
+
+    tallies = openmc.Tallies([tally1,tally2,first_wall_heating_tally,vacuum_vessel_heating_tally]) 
 
     # Create model
     model = openmc.Model(geometry=geometry,

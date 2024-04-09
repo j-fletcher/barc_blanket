@@ -16,7 +16,7 @@ with working_directory("independent_vessel_activation"):
     # Save model as xml
     model.export_to_model_xml()
 
-    rerun_depletion = False
+    rerun_depletion = True
     times = np.geomspace(0.01, 365, 100)
     if not os.path.exists("depletion_results.h5") or rerun_depletion:
         run_independent_vessel_activation(model, times=times)
