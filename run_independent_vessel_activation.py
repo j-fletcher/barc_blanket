@@ -11,7 +11,8 @@ with working_directory("independent_vessel_activation"):
 
     model_config = {"batches": 10,
                     "particles": 1000,
-                    "slurry_ratio": 0}
+                    "slurry_ratio": 0,
+                    "section_angle": 10,}
     model = make_model(model_config)
     # Save model as xml
     model.export_to_model_xml()
