@@ -23,7 +23,7 @@ DEFAULT_PARAMETERS = {
     'section_angle': 45,            # Angle of the toroidal section in degrees
 
     'li6_enrichment': 0.076,        # atom% enrichment of Li6 in the FLiBe
-    'slurry_ratio': 0.01,           # atom% slurry in the burner blanket
+    'slurry_ratio': 0.01,           # weight% slurry in the burner blanket
   
     'batches': 50,               # Number of batches to run
     'particles': int(1e5),       # Number of particles per batch
@@ -55,6 +55,18 @@ def make_model(new_model_config=None):
                 model_config[key] = DEFAULT_PARAMETERS[key]
             else:
                 print(f"Using set value for {key}:\t {model_config[key]}")
+
+    ######################
+    ## Define Constants ##
+    ######################
+
+    R = model_config['major_radius']
+    a = model_config['plasma_minor_radius']
+    sol_width = model_config['sol_width']
+    first_wall_thickness = model_config['first_wall_thickness']
+    vv_thickness = model_config['vv_thickness']
+    blanket_width = model_config['blanket_width']
+    bv_thickness = model_config['bv_thickness']
 
     #####################
     ## Assign Materials##

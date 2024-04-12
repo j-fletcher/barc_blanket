@@ -1,4 +1,5 @@
 import openmc
+from .create_waste import create_waste_material
 
 # Plasma
 def dt_plasma():
@@ -92,23 +93,47 @@ def water():
     return water
 
 # Raw tank contents, do however you want to define this
-# For now just say it's natural uranium TODO can change this to be whatever
-def simple_tank_contents():
-    tank_contents = openmc.Material(name='tank_contents')
-    tank_contents.depletable = True
-    tank_contents.add_nuclide('U235', 0.0072)
-    tank_contents.add_nuclide('U238', 0.9928)
-    tank_contents.set_density('g/cm3', 19.1)
-    return tank_contents
+def tank_contents():
+    tank1_SCS = create_waste_material('241-A-106','Saltcake Solid','241-A-106-SCS')
+    tank1_SLS = create_waste_material('241-A-106','Sludge (Liquid & Solid)','241-A-106-SLS')
+    tank1_SS = create_waste_material('241-A-106','Sludge Solid','241-A-106-SS')
 
-# Tank slurry contents
-def burner_mixture(slurry_ratio, tank_contents=simple_tank_contents(), flibe=flibe()):
-    """Create a mixture of flibe and tank contents for the burner blanket
+    #Tank Mixture waste phase volumes for 241-A-106 in L
+    #SIL_vol = 198000
+    SCS_vol = 84000
+    SLS_vol = 38000+110000
+    SS_vol = 41000
+
+    total_vol = SCS_vol + SLS_vol + SS_vol
+
+    #Waste Phase Volume Fraction
+    #SIL_frac = SIL_vol/total_vol
+    SCS_frac = SCS_vol/total_vol
+    SLS_frac = SLS_vol/total_vol
+    SS_frac = SS_vol/total_vol
+
+    #Tank material object containing all present waste phases
+    tank_contents = openmc.Material.mix_materials([tank1_SCS,tank1_SLS,tank1_SS],[SCS_frac,SLS_frac,SS_frac],'vo')
+
+    # remove nuclides that doen't exist in ENDF/B-VIII.0
+    tank_contents.remove_nuclide('Cd113_m1')
+    tank_contents.remove_nuclide('Ba137_m1')
+    tank_contents.remove_nuclide('C14')
+    tank_contents.remove_nuclide('Co60')
+    tank_contents.remove_nuclide('Nb93_m1')
+    tank_contents.remove_nuclide('C0')
+
+    tank_contents.depletable = True
+    tank_contents.name = 'tank_contents'
+
+# Mixture of tank contents and flibe for the blanket
+def burner_mixture(slurry_ratio, tank_contents=tank_contents(), flibe=flibe()):
+    """Create a mixture of flibe and tank contents for the blanket
     
     Parameters:
     ----------
     slurry_ratio : float
-        The weight percent of slurry in the burner blanket
+        The weight percent of slurry in the blanket
     tank_contents : openmc.Material, optional
         The tank contents to use in the mixture. Default is natural uranium.
     flibe : openmc.Material, optional
@@ -126,7 +151,7 @@ def burner_mixture(slurry_ratio, tank_contents=simple_tank_contents(), flibe=fli
     burner_mixture = openmc.Material.mix_materials(
         [flibe, tank_contents],
         [flibe_ao, slurry_ratio],
-        'ao',
+        'wo',
         name="burner_mixture"
     )
     burner_mixture.depletable = True
