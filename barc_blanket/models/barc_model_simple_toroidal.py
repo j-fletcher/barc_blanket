@@ -57,20 +57,8 @@ def make_model(new_model_config=None):
                 print(f"Using set value for {key}:\t {model_config[key]}")
 
     ######################
-    ## Define Constants ##
+    ## Assign Materials ##
     ######################
-
-    R = model_config['major_radius']
-    a = model_config['plasma_minor_radius']
-    sol_width = model_config['sol_width']
-    first_wall_thickness = model_config['first_wall_thickness']
-    vv_thickness = model_config['vv_thickness']
-    blanket_width = model_config['blanket_width']
-    bv_thickness = model_config['bv_thickness']
-
-    #####################
-    ## Assign Materials##
-    #####################
 
     plasma_material = dt_plasma()
     first_wall_material = tungsten()

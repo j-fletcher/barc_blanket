@@ -125,6 +125,7 @@ def tank_contents():
 
     tank_contents.depletable = True
     tank_contents.name = 'tank_contents'
+    return tank_contents
 
 # Mixture of tank contents and flibe for the blanket
 def burner_mixture(slurry_ratio, tank_contents=tank_contents(), flibe=flibe()):
