@@ -167,3 +167,6 @@ cython_debug/
 
 # Working directory folders
 depletion
+
+# Statepoint files
+*.h5

@@ -1,6 +1,7 @@
 import openmc
 
 CURIES_PER_BECQUEREL = 2.7e-11 # NRC uses curies, OpenMC uses becquerels
+KG_PER_AMU = 1.66e-27
 CUBIC_CENTIMETERS_PER_CUBIC_METER = 1e6
 
 # Tables from https://www.nrc.gov/reading-rm/doc-collections/cfr/part061/part061-0055.html
@@ -111,10 +112,10 @@ def sum_of_fractions(material:openmc.Material, table, column):
         raise ValueError("Invalid table number")
 
     # Get the activities in NRC units
-    nuclide_activity_bq_per_cm3 = material.get_activity(by_nuclide=True, units="Bq/cm3")
-    nuclide_activity_ci_per_m3 = {nuclide: activity * CURIES_PER_BECQUEREL * CUBIC_CENTIMETERS_PER_CUBIC_METER for nuclide, activity in nuclide_activity_bq_per_cm3.items()}
-    nuclide_activity_bq_per_g = material.get_activity(by_nuclide=True, units="Bq/g")
-    nuclide_activity_nci_per_g = {nuclide: activity * CURIES_PER_BECQUEREL * 1e9 for nuclide, activity in nuclide_activity_bq_per_g.items()}
+    nuclide_activity_Bq_per_cm3 = material.get_activity(by_nuclide=True, units="Bq/cm3")
+    nuclide_activity_Ci_per_m3 = {nuclide: activity * CURIES_PER_BECQUEREL * CUBIC_CENTIMETERS_PER_CUBIC_METER for nuclide, activity in nuclide_activity_Bq_per_cm3.items()}
+    nuclide_activity_Bq_per_g = material.get_activity(by_nuclide=True, units="Bq/g")
+    nuclide_activity_nCi_per_g = {nuclide: activity * CURIES_PER_BECQUEREL * 1e9 for nuclide, activity in nuclide_activity_Bq_per_g.items()}
 
     # Calculate the sum of fractions
     sum_of_fractions = 0
@@ -123,12 +124,12 @@ def sum_of_fractions(material:openmc.Material, table, column):
     for nuclide in nuclides:
         if nuclide in volume_concentration.keys():
             if volume_concentration[nuclide] is not None:
-                fraction = nuclide_activity_ci_per_m3[nuclide] / volume_concentration[nuclide]
+                fraction = nuclide_activity_Ci_per_m3[nuclide] / volume_concentration[nuclide]
                 sum_of_fractions += fraction
                 nuclide_fractions[nuclide] = fraction
         elif mass_concentration is not None and nuclide in mass_concentration.keys():
             if mass_concentration[nuclide] is not None:
-                fraction = nuclide_activity_nci_per_g[nuclide] / mass_concentration[nuclide]
+                fraction = nuclide_activity_nCi_per_g[nuclide] / mass_concentration[nuclide]
                 sum_of_fractions += fraction
                 nuclide_fractions[nuclide] = fraction
 
@@ -205,5 +206,34 @@ def separate_tritium(original_material:openmc.Material, efficiency=1.0):
     # Calculate the new tritium concentration
     new_tritium_concentration = tritium_concentration * (1 - efficiency)
 
+def make_activity_volume_density(nuclide_activity_Ci_per_m3:dict):
+    """Create a material with the given nuclides and activity concentrations
     
+    Parameters:
+    -----------
+    nuclide_activity_Ci_per_m3: dict
+        A dictionary of nuclides and their activity concentrations in Ci/m3
+
+    Returns:
+    --------
+    material: openmc.Material
+        The new material
+    """
+
+    nuclides = nuclide_activity_Ci_per_m3.keys()
+
+    # Create the material
+    material = openmc.Material()
+    # For each nuclide, add it to the material with weight% assuming there is 1kg of the material
+    for nuclide in nuclides:
+        # Get the target activity in Bq/m3
+        target_activity_Bq_per_m3 = nuclide_activity_Ci_per_m3[nuclide] / CURIES_PER_BECQUEREL
+        decay_constant = openmc.data.decay_constant(nuclide)
+        atoms_per_m3 = target_activity_Bq_per_m3 / decay_constant
+        atomic_weight = openmc.data.atomic_mass(nuclide)
+        kg_of_nuclide = (atoms_per_m3 / atomic_weight) * KG_PER_AMU
+        material.add_nuclide(nuclide, kg_of_nuclide, 'wo')
+
+    material.set_density('kg/m3', 1)
+    return material
 
