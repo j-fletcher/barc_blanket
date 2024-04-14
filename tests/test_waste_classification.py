@@ -23,14 +23,28 @@ class TestCheckClassC:
         # Ensure the result is 'True' as this is low level waste and print error message if not
         assert result == True, "Expected O16 to meet the NRC requirements for class C low-level waste"
 
-# class CheckSumOfFractions:
+class TestSumOfFractions:
 
-#     def test_nrc_example(self):
-#         """Ensure that the sum of fractions is calculated correctly by comparing to the NRC example
-#         in Paragraph 7 https://www.nrc.gov/reading-rm/doc-collections/cfr/part061/part061-0055.html"""
+    def test_nrc_example(self):
+        """Ensure that the sum of fractions is calculated correctly by comparing to the NRC example
+        in Paragraph 7 https://www.nrc.gov/reading-rm/doc-collections/cfr/part061/part061-0055.html"""
 
-#         # Create a material with 50 Ci/m3 of Sr-90 and 22 Ci/m3 of Cs-137
-#         material = openmc.Material(name='NRC Example')
+        # Create a material with 50 Ci/m3 of Sr-90 and 22 Ci/m3 of Cs-137
+        nrc_example = {
+            'Sr90': 50,
+            'Cs137': 22
+        }
+        material = make_activity_volume_density(nrc_example)
+
+        # Calculate the sum of fractions for column 1 of table 2
+        sum_of_fractions_result, _ = sum_of_fractions(material, 2, 1)
+        # Ensure the sum of fractions is greater than 1, indicating it is not class-A waste
+        assert sum_of_fractions_result > 1, f"Expected sum of fractions to be greater than 1 but got {sum_of_fractions_result:0.2f}"
+
+        # Calculate the sum of fractions for column 2 of table 2
+        sum_of_fractions_result, _ = sum_of_fractions(material, 2, 2)
+        # Ensure the sum of fractions is about 0.83, indicating it is class-B waste
+        assert sum_of_fractions_result == pytest.approx(0.83, rel=0.01), f"Expected sum of fractions to be about 0.83 but got {sum_of_fractions_result:0.2f}"
 
 class TestMakeActivityVolumeDensity:
 
