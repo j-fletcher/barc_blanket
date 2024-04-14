@@ -205,21 +205,5 @@ def separate_tritium(original_material:openmc.Material, efficiency=1.0):
     # Calculate the new tritium concentration
     new_tritium_concentration = tritium_concentration * (1 - efficiency)
 
-    # Calculate the scaling factor
-    scaling_factor = new_tritium_concentration / tritium_concentration
-
-    # Create a new material
-    new_material = openmc.Material()
-    new_material.set_density(original_material.get_density())
-    new_material.set_name(original_material.get_name())
-    new_material.set_id(original_material.get_id())
-
-    # Add the nuclides to the new material
-    for nuclide in nuclides:
-        if nuclide.name == "H3":
-            new_material.add_nuclide(nuclide.name, scaling_factor * nuclide.atom_density)
-        else:
-            new_material.add_nuclide(nuclide.name, nuclide.atom_density)
-
-    return new_material
+    
 
