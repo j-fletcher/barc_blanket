@@ -1,5 +1,8 @@
 import openmc
 
+CURIES_PER_BECQUEREL = 2.7e-11 # NRC uses curies, OpenMC uses becquerels
+CUBIC_CENTIMETERS_PER_CUBIC_METER = 1e6
+
 # Tables from https://www.nrc.gov/reading-rm/doc-collections/cfr/part061/part061-0055.html
 # Assuming there is no 'activated metal' since it's a molten salt slurry
 
@@ -73,7 +76,65 @@ def sum_of_fractions(material:openmc.Material, table, column):
     # Get the nuclides in the material
     nuclides = material.get_nuclides()
 
-def check_class_c(material:openmc.Material, verbose=False):
+    # Determine which dictionary to use and fill in missing values if applicable
+    if table == 1:
+        volume_concentration = TABLE_1_VOLUME_CONCENTRATION
+        mass_concentration = TABLE_1_MASS_CONCENTRATION
+
+        for nuclide in nuclides:
+            if nuclide not in mass_concentration.keys():
+                # Check if it's an alpha-emitting transuranic with half life of greater than 5 years
+                half_life_seconds = openmc.data.half_life(nuclide) 
+                if half_life_seconds is not None: # If it's stable, this will be None
+                    half_life_years = half_life_seconds / (365 * 24 * 60 * 60)
+                    atomic_number = openmc.data.zam(nuclide)[0]
+                    if atomic_number > 92 and half_life_years > 5:
+                        # TODO: I'm pretty sure all unstable transuranic isotopes are alpha emitters,
+                        # but we should double check this
+                        mass_concentration[nuclide] = mass_concentration["long_lived_transuranic_alphas"]
+    elif table == 2:
+        if column is None:
+            raise ValueError("Column must be specified for table 2")
+        else:
+            volume_concentration = TABLE_2_VOLUME_CONCENTRATION[column]
+            mass_concentration = None
+
+            for nuclide in nuclides:
+                if nuclide not in volume_concentration.keys():
+                    # Check if it has a half life of less than 5 years
+                    half_life_seconds = openmc.data.half_life(nuclide)
+                    if half_life_seconds is not None: # If it's stable, this will be None
+                        half_life_years = half_life_seconds / (365 * 24 * 60 * 60)
+                        if half_life_years < 5:
+                            volume_concentration[nuclide] = volume_concentration["all_short_lived_nuclides"]
+    else:
+        raise ValueError("Invalid table number")
+
+    # Get the activities in NRC units
+    nuclide_activity_bq_per_cm3 = material.get_activity(by_nuclide=True, units="Bq/cm3")
+    nuclide_activity_ci_per_m3 = {nuclide: activity * CURIES_PER_BECQUEREL * CUBIC_CENTIMETERS_PER_CUBIC_METER for nuclide, activity in nuclide_activity_bq_per_cm3.items()}
+    nuclide_activity_bq_per_g = material.get_activity(by_nuclide=True, units="Bq/g")
+    nuclide_activity_nci_per_g = {nuclide: activity * CURIES_PER_BECQUEREL * 1e9 for nuclide, activity in nuclide_activity_bq_per_g.items()}
+
+    # Calculate the sum of fractions
+    sum_of_fractions = 0
+    nuclide_fractions = {}
+
+    for nuclide in nuclides:
+        if nuclide in volume_concentration.keys():
+            if volume_concentration[nuclide] is not None:
+                fraction = nuclide_activity_ci_per_m3[nuclide] / volume_concentration[nuclide]
+                sum_of_fractions += fraction
+                nuclide_fractions[nuclide] = fraction
+        elif mass_concentration is not None and nuclide in mass_concentration.keys():
+            if mass_concentration[nuclide] is not None:
+                fraction = nuclide_activity_nci_per_g[nuclide] / mass_concentration[nuclide]
+                sum_of_fractions += fraction
+                nuclide_fractions[nuclide] = fraction
+
+    return sum_of_fractions, nuclide_fractions
+
+def check_class_c(material:openmc.Material):
     """Determine if the material is Class C waste according to the NRC
 
     https://www.nrc.gov/reading-rm/doc-collections/cfr/part061/part061-0055.html
@@ -89,10 +150,6 @@ def check_class_c(material:openmc.Material, verbose=False):
     --------
     class_c: bool
         True if the material is Class C waste, False otherwise
-    table_1_fractions: dict
-        The relative fraction for each nuclide category in table 1
-    table_2_fractions: dict
-        The relative fraction for each nuclide category in table 2
     """
 
     # Stepping through the logic on the page linked above
@@ -110,9 +167,9 @@ def check_class_c(material:openmc.Material, verbose=False):
     # - The sum of fractions for table 1 does not exceed 1
     # - The sum of fractions for column 3 of table 2 does not exceed 1
 
-    table_1_sum_of_fractions, table_1_fractions = sum_of_fractions(material, 1, None)
-    if table_1_sum_of_fractions < 1 or verbose:
-        table_2_sum_of_fractions, table_2_fractions = sum_of_fractions(material, 2, 3)
+    table_1_sum_of_fractions, _ = sum_of_fractions(material, 1, None)
+    if table_1_sum_of_fractions < 1:
+        table_2_sum_of_fractions, _ = sum_of_fractions(material, 2, 3)
         if table_2_sum_of_fractions < 1:
             class_c = True
         else:
@@ -120,8 +177,49 @@ def check_class_c(material:openmc.Material, verbose=False):
     else:
         class_c = False
 
-    if verbose:
-        return class_c, table_1_fractions, table_2_fractions
-    else:
-        return class_c
+    return class_c
+
+def separate_tritium(original_material:openmc.Material, efficiency=1.0):
+    """Remove tritium from a material with a given efficiency and return it as a new material
+    
+    Parameters:
+    -----------
+    material: openmc.Material
+        The material to remove tritium from
+    efficiency: float
+        The efficiency of the separation process. Default is 1.0 (100%)
+
+    Returns:
+    --------
+    new_material: openmc.Material
+        A new material with the same contents as the original but with some tritium removed,
+        and concentrations adjusted accordingly
+    """
+
+    # Get the nuclides in the material
+    nuclides = original_material.get_nuclides()
+
+    # Get the tritium concentration
+    tritium_concentration = original_material.get_nuclide_atom_density("H3")
+
+    # Calculate the new tritium concentration
+    new_tritium_concentration = tritium_concentration * (1 - efficiency)
+
+    # Calculate the scaling factor
+    scaling_factor = new_tritium_concentration / tritium_concentration
+
+    # Create a new material
+    new_material = openmc.Material()
+    new_material.set_density(original_material.get_density())
+    new_material.set_name(original_material.get_name())
+    new_material.set_id(original_material.get_id())
+
+    # Add the nuclides to the new material
+    for nuclide in nuclides:
+        if nuclide.name == "H3":
+            new_material.add_nuclide(nuclide.name, scaling_factor * nuclide.atom_density)
+        else:
+            new_material.add_nuclide(nuclide.name, nuclide.atom_density)
+
+    return new_material
 
