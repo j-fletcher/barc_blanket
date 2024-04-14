@@ -1,6 +1,6 @@
 import openmc
 
-CURIES_PER_BECQUEREL = 2.7e-11 # NRC uses curies, OpenMC uses becquerels
+CURIES_PER_BECQUEREL = 1/3.7e10 # NRC uses curies, OpenMC uses becquerels
 KG_PER_AMU = 1.66e-27
 CUBIC_CENTIMETERS_PER_CUBIC_METER = 1e6
 
@@ -224,15 +224,22 @@ def make_activity_volume_density(nuclide_activity_Ci_per_m3:dict):
 
     # Create the material
     material = openmc.Material()
-    # For each nuclide, add it to the material with weight% assuming there is 1kg of the material
+    # For each nuclide, add it to the material with weight%
+    # and fill it out with a stable nuclide to make up the difference
+    # assuming there is 1 kg of the material
+    stable_weight = 1
     for nuclide in nuclides:
         # Get the target activity in Bq/m3
         target_activity_Bq_per_m3 = nuclide_activity_Ci_per_m3[nuclide] / CURIES_PER_BECQUEREL
         decay_constant = openmc.data.decay_constant(nuclide)
         atoms_per_m3 = target_activity_Bq_per_m3 / decay_constant
         atomic_weight = openmc.data.atomic_mass(nuclide)
-        kg_of_nuclide = (atoms_per_m3 / atomic_weight) * KG_PER_AMU
+        kg_of_nuclide = (atoms_per_m3 * atomic_weight) * KG_PER_AMU
         material.add_nuclide(nuclide, kg_of_nuclide, 'wo')
+        stable_weight -= kg_of_nuclide
+    
+    # Add the stable weight
+    material.add_nuclide('O16', stable_weight, 'wo')
 
     material.set_density('kg/m3', 1)
     return material

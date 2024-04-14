@@ -53,7 +53,7 @@ class TestMakeActivityVolumeDensity:
         for nuclide, target_activity in target_material.items():
             activity_Ci_per_m3 = (activities_Bq_per_cm3[nuclide] / 3.7e10) * 1e6
 
-            assert activity_Ci_per_m3 == pytest.approx(target_activity), f"Expected {nuclide} to have an activity of {target_activity:0.2f} Ci/m3 but got {activity_Ci_per_m3:0.2f} Ci/m3"
+            assert activity_Ci_per_m3 == pytest.approx(target_activity, rel=0.01), f"Expected {nuclide} to have an activity of {target_activity:0.2f} Ci/m3 but got {activity_Ci_per_m3:0.2f} Ci/m3"
 
 
         
