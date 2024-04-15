@@ -84,6 +84,47 @@ class TestSeparateNuclides:
 
         assert new_activity_Ci_per_m3 == pytest.approx(100, rel=0.01), f"Expected Sr90 to have an activity of 100 Ci/m3 but got {new_activity_Ci_per_m3:0.2f}"
 
+    def test_single_activity_change(self):
+        """Ensure the activity density does not change when a material is uniformly removed"""
+
+        # Create a material with only Sr90 and O16 fill
+        target_material = {
+            'Sr90': 50
+        }
+        material = make_activity_volume_density(target_material)
+
+        # Remove half the Sr90 and O16 fill from the material
+        new_material = separate_nuclides(material, {'Sr90': 0.5, 'O16': 0.5})
+
+        # Ensure the new material has the same activity volume density as the original
+        new_activities_Bq_per_cm3 = new_material.get_activity(by_nuclide=True, units='Bq/cm3')
+        new_activity_Ci_per_m3 = (new_activities_Bq_per_cm3['Sr90'] / 3.7e10) * 1e6
+
+        assert new_activity_Ci_per_m3 == pytest.approx(50, rel=0.01), f"Expected Sr90 to have an activity of 50 Ci/m3 but got {new_activity_Ci_per_m3:0.2f}"
+
+    def test_double_activity_change(self):
+        """Again, ensure the activity density does not change when a material is uniformly removed,
+        But this time with multiple nuclide types"""
+
+        target_material = {
+            'H3': 50,
+            'Sr90': 50,
+            'Cs137': 50,
+        }
+
+        material = make_activity_volume_density(target_material)
+
+        # Remove 20% of all nuclides from the material
+        new_material = separate_nuclides(material, {'H3': 0.2, 'Sr90': 0.2, 'Cs137': 0.2})
+
+        # Ensure the new material has the same activity volume density as the original
+        new_activities_Bq_per_cm3 = new_material.get_activity(by_nuclide=True, units='Bq/cm3')
+
+        for nuclide, target_activity in target_material.items():
+            new_activity_Ci_per_m3 = (new_activities_Bq_per_cm3[nuclide] / 3.7e10) * 1e6
+            assert new_activity_Ci_per_m3 == pytest.approx(target_activity, rel=0.01), f"Expected {nuclide} to have an activity of {target_activity:0.2f} Ci/m3 but got {new_activity_Ci_per_m3:0.2f}"
+
+
 class TestMakeActivityVolumeDensity:
 
     def test_nrc_example(self):

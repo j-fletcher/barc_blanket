@@ -237,22 +237,29 @@ def separate_nuclides(original_material:openmc.Material, nuclide_removal_efficie
         remaining_mass_densities[nuclide] = remaining_mass_density
         remaining_total_mass_density += remaining_mass_density
 
-    # Create a new material with the remaining nuclides
+    # Create new material
     new_material = openmc.Material()
-    for nuclide, mass_density in remaining_mass_densities.items():
-        if mass_density > 0:
-            weight_percent = (mass_density / remaining_total_mass_density)*100
-            new_material.add_nuclide(nuclide, weight_percent, 'wo')
 
-    # Adjust the density of the new material to take into account what was removed
+    # Scale each mass density to account for the change in volume
     # Assuming the volume change is linear with respect to mass density
+    # new_mass_densities = {}
+    # for nuclide in nuclides:
+    #     new_mass_densities[nuclide] = remaining_mass_densities[nuclide] / (1 - removed_volume)
     new_total_mass_density = original_total_mass_density / (1 - removed_volume)
     new_material.set_density('g/cm3', new_total_mass_density)
 
+    # Add the remaining nuclides to the new material
+    for nuclide, mass_density in remaining_mass_densities.items():
+        if mass_density > 0:
+            weight_percent = (mass_density / new_total_mass_density)*100
+            new_material.add_nuclide(nuclide, weight_percent, 'wo')
+    
     return new_material
 
 def make_activity_volume_density(nuclide_activity_Ci_per_m3:dict):
-    """Create a material with the given nuclides and activity concentrations
+    """Create a material with the given nuclides and activity concentrations,
+    where the activity is in Ci/m3
+    and the remaining mass is filled out with stable isotopes (O16)
     
     Parameters:
     -----------
@@ -270,9 +277,7 @@ def make_activity_volume_density(nuclide_activity_Ci_per_m3:dict):
     # Create the material
     material = openmc.Material()
     # For each nuclide, add it to the material with weight%
-    # and fill it out with a stable nuclide to make up the difference
-    # assuming there is 1 kg of the material
-    stable_weight = 1
+    required_density = 0
     for nuclide in nuclides:
         # Get the target activity in Bq/m3
         target_activity_Bq_per_m3 = nuclide_activity_Ci_per_m3[nuclide] / CURIES_PER_BECQUEREL
@@ -281,11 +286,9 @@ def make_activity_volume_density(nuclide_activity_Ci_per_m3:dict):
         atomic_weight = openmc.data.atomic_mass(nuclide)
         kg_of_nuclide = (atoms_per_m3 * atomic_weight) * KG_PER_AMU
         material.add_nuclide(nuclide, kg_of_nuclide, 'wo')
-        stable_weight -= kg_of_nuclide
-    
-    # Add the stable weight
-    material.add_nuclide('O16', stable_weight, 'wo')
+        required_density += kg_of_nuclide
 
-    material.set_density('kg/m3', 1)
+    material.set_density('kg/m3', required_density)
+
     return material
 
