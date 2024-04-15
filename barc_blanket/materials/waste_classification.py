@@ -180,31 +180,76 @@ def check_class_c(material:openmc.Material):
 
     return class_c
 
-def separate_tritium(original_material:openmc.Material, efficiency=1.0):
-    """Remove tritium from a material with a given efficiency and return it as a new material
+def separate_nuclides(original_material:openmc.Material, nuclide_removal_efficiencies:dict):
+    """Remove nuclides from a material with a given efficiency and return it as a new material
+    with the remaining nuclides adjusted to maintain the same number of atoms,
+    assuming the volume changes are linear with respect to mass density and independent of nuclide
     
     Parameters:
     -----------
     material: openmc.Material
-        The material to remove tritium from
-    efficiency: float
-        The efficiency of the separation process. Default is 1.0 (100%)
+        The material to remove nuclides from
+    nuclide_removal_efficiencies: dict
+        A dictionary of nuclides and their removal efficiencies in percent of total atoms
+        key = nuclide, value = efficiency (float between 0 and 1)
 
     Returns:
     --------
     new_material: openmc.Material
-        A new material with the same contents as the original but with some tritium removed,
-        and concentrations adjusted accordingly
+        A new material with the same contents as the original but with some nuclides removed,
+        and remaining concentrations adjusted accordingly
     """
+
+    # The basic idea is that we want to remove some nuclides from the material while leaving the rest alone
+    # We will accomplish this by first finding the mass density of all nuclides, then decreasing some of them
+    # Then we will re-create the material with a mixture of the remaining nuclides using wt%
+    # And finally we will adjust the density of the material to take into account what was removed
 
     # Get the nuclides in the material
     nuclides = original_material.get_nuclides()
+    original_total_mass_density = original_material.get_mass_density('g/cm3')
 
-    # Get the tritium concentration
-    tritium_concentration = original_material.get_nuclide_atom_density("H3")
+    # Remove the nuclides with the given efficiencies
+    # While doing this, keep track of each nuclide's mass density,
+    # the total remaining mass density (should be lower than original),
+    # and how much of the volume was removed (assuming 1 cm3 of the original material)
+    remaining_mass_densities = {}
+    remaining_total_mass_density = 0
+    removed_volume = 0
+    for nuclide in nuclides:
+        original_mass_density = original_material.get_mass_density(nuclide, units='g/cm3')
+        if nuclide in nuclide_removal_efficiencies.keys():
+            efficiency = nuclide_removal_efficiencies[nuclide]
+            # Ensure that efficiency is actually between 0 and 1
+            if efficiency < 0 or efficiency > 1:
+                raise ValueError(f"Removal efficiency must be between 0 and 1, but got {efficiency} for {nuclide}")
+            new_mass_density = mass_density * (1 - efficiency)
 
-    # Calculate the new tritium concentration
-    new_tritium_concentration = tritium_concentration * (1 - efficiency)
+            # Calculate how much volume the original nuclide took up
+            volume_fraction = original_mass_density / original_total_mass_density
+            # Calculate how much volume was removed
+            removed_volume += volume_fraction * efficiency
+
+            mass_density = new_mass_density
+        else:
+            remaining_mass_density = original_mass_density
+        
+        remaining_mass_densities[nuclide] = remaining_mass_density
+        remaining_total_mass_density += remaining_mass_density
+
+    # Create a new material with the remaining nuclides
+    new_material = openmc.Material()
+    for nuclide, mass_density in remaining_mass_densities.items():
+        if mass_density > 0:
+            weight_percent = (mass_density / remaining_total_mass_density)*100
+            new_material.add_nuclide(nuclide, weight_percent, 'wo')
+
+    # Adjust the density of the new material to take into account what was removed
+    # Assuming the volume change is linear with respect to mass density
+    new_total_mass_density = original_total_mass_density / (1 - removed_volume)
+    new_material.set_density('g/cm3', new_total_mass_density)
+
+    return new_material
 
 def make_activity_volume_density(nuclide_activity_Ci_per_m3:dict):
     """Create a material with the given nuclides and activity concentrations

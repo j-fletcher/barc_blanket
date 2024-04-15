@@ -46,6 +46,8 @@ class TestSumOfFractions:
         # Ensure the sum of fractions is about 0.83, indicating it is class-B waste
         assert sum_of_fractions_result == pytest.approx(0.83, rel=0.01), f"Expected sum of fractions to be about 0.83 but got {sum_of_fractions_result:0.2f}"
 
+class TestSeparateTritium
+
 class TestMakeActivityVolumeDensity:
 
     def test_nrc_example(self):
