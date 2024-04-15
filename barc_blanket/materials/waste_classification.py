@@ -207,7 +207,7 @@ def separate_nuclides(original_material:openmc.Material, nuclide_removal_efficie
 
     # Get the nuclides in the material
     nuclides = original_material.get_nuclides()
-    original_total_mass_density = original_material.get_mass_density('g/cm3')
+    original_total_mass_density = original_material.get_mass_density()
 
     # Remove the nuclides with the given efficiencies
     # While doing this, keep track of each nuclide's mass density,
@@ -217,20 +217,20 @@ def separate_nuclides(original_material:openmc.Material, nuclide_removal_efficie
     remaining_total_mass_density = 0
     removed_volume = 0
     for nuclide in nuclides:
-        original_mass_density = original_material.get_mass_density(nuclide, units='g/cm3')
+        original_mass_density = original_material.get_mass_density(nuclide)
         if nuclide in nuclide_removal_efficiencies.keys():
             efficiency = nuclide_removal_efficiencies[nuclide]
             # Ensure that efficiency is actually between 0 and 1
             if efficiency < 0 or efficiency > 1:
                 raise ValueError(f"Removal efficiency must be between 0 and 1, but got {efficiency} for {nuclide}")
-            new_mass_density = mass_density * (1 - efficiency)
+            new_mass_density = original_mass_density * (1 - efficiency)
 
             # Calculate how much volume the original nuclide took up
             volume_fraction = original_mass_density / original_total_mass_density
             # Calculate how much volume was removed
             removed_volume += volume_fraction * efficiency
 
-            mass_density = new_mass_density
+            remaining_mass_density = new_mass_density
         else:
             remaining_mass_density = original_mass_density
         

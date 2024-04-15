@@ -1,7 +1,7 @@
 import openmc
 import pytest
 
-from barc_blanket.materials.waste_classification import check_class_c, sum_of_fractions, separate_tritium, make_activity_volume_density
+from barc_blanket.materials.waste_classification import check_class_c, sum_of_fractions, separate_nuclides, make_activity_volume_density
 
 class TestCheckClassC:
 
@@ -46,7 +46,43 @@ class TestSumOfFractions:
         # Ensure the sum of fractions is about 0.83, indicating it is class-B waste
         assert sum_of_fractions_result == pytest.approx(0.83, rel=0.01), f"Expected sum of fractions to be about 0.83 but got {sum_of_fractions_result:0.2f}"
 
-class TestSeparateTritium
+class TestSeparateNuclides:
+
+    def test_simple_density_change(self):
+        """Ensure that the mass density is correctly changed when separating nuclides"""
+
+        # Create a simple material that is an even mixture of oxygen and hydrogen
+        material = openmc.Material(name='simple_material')
+        material.add_nuclide('O16', 1.0, 'wo')
+        material.add_nuclide('H1', 1.0, 'wo')
+        material.set_density('g/cm3', 1.0)
+
+        # Remove all the H1 from the material
+        new_material = separate_nuclides(material, {'H1': 1})
+        new_mass_density = new_material.get_mass_density()
+
+        # Ensure the new material has a density of 2 g/cm3
+        # Since we removed all the H1, the remaining O16 will be more densely packed
+        assert new_mass_density == pytest.approx(2.0, rel=0.01), f"Expected density to be 2 g/cm3 but got {new_mass_density:0.2f}"
+
+    def test_simple_activity_change(self):
+        """Ensure that the activity is correctly changed when separating nuclides"""
+
+        # Create a simple material that has equal activity volume density from Sr90 and Cs137
+        target_material = {
+            'Sr90': 50,
+            'Cs137': 50
+        }
+        material = make_activity_volume_density(target_material)
+
+        # Remove all the Cs137 from the material
+        new_material = separate_nuclides(material, {'Cs137': 1})
+
+        # Ensure the new material has double the activity volume density from Sr90
+        new_activities_Bq_per_cm3 = new_material.get_activity(by_nuclide=True, units='Bq/cm3')
+        new_activity_Ci_per_m3 = (new_activities_Bq_per_cm3['Sr90'] / 3.7e10) * 1e6
+
+        assert new_activity_Ci_per_m3 == pytest.approx(100, rel=0.01), f"Expected Sr90 to have an activity of 100 Ci/m3 but got {new_activity_Ci_per_m3:0.2f}"
 
 class TestMakeActivityVolumeDensity:
 
