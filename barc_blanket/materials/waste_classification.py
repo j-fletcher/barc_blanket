@@ -261,6 +261,8 @@ def separate_nuclides(original_material:openmc.Material, nuclide_removal_efficie
     
     return new_material
 
+#def vitrify_waste(material:openmc.Material, weight_percent_ratio)
+
 def make_activity_volume_density(nuclide_activities_Ci_per_m3:dict):
     """Create a material with the given nuclides and activity concentrations in Ci/m3
     
