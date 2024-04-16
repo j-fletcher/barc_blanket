@@ -3,6 +3,10 @@ import openmc
 import openmc.deplete
 import numpy as np
 from models.barc_model_simple_toroidal import make_model
+from utilities import CROSS_SECTIONS, CHAIN_FILE
+
+openmc.config['cross_sections'] = CROSS_SECTIONS
+openmc.config['chain_file'] = CHAIN_FILE
 
 # create model from barc_model_simple_toroidal.py
 

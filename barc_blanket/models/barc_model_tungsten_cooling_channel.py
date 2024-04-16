@@ -2,36 +2,16 @@ import os
 import openmc
 import numpy as np
 
+from .barc_model_simple_toroidal import DEFAULT_PARAMETERS
+
 from .materials import dt_plasma, flibe, burner_mixture, v4cr4ti, tungsten
 
 # Default model parameters
 # TODO: this all assumes a circular cross-section, which is not necessarily the case
 # Must determine if this is a reasonable assumption
-# See 'simple_toroidal.png' for a diagram of the geometry
+# The only change here is that the cooling vessel is tungsten and moved inside the vacuum vessel
 
-DEFAULT_PARAMETERS = {
-    'major_radius': 450,            # All dimensions are in cm
-    'plasma_minor_radius': 138,
-    'sol_width': 2,
-    'first_wall_thickness': 0.1,          # How thick the plasma facing material is
-    'vacuum_vessel_thickness': 1,         # How thick the vacuum vessel is
-    'cooling_channel_width': 1,           # Width of the flowing coolant
-    'cooling_vessel_thickness': 1,        # How thick the cooling vessel is
-    'blanket_width': 130,                 # Width of the bulk molten salt blanket
-    'blanket_vessel_thickness': 8,        # How thick the blanket vessel is
-
-    'section_angle': 45,            # Angle of the toroidal section in degrees
-
-    'li6_enrichment': 0.076,        # atom% enrichment of Li6 in the FLiBe
-    'slurry_ratio': 0.01,           # weight% slurry in the burner blanket
-  
-    'batches': 50,               # Number of batches to run
-    'particles': int(1e5),       # Number of particles per batch
-
-    'photon_transport': False    # Whether to run photon transport
-}
-
-def make_model(new_model_config=None):
+def make_model_tungsten_cooling(new_model_config=None):
     """Create an OpenMC model using the given configuration
     
     Parameters:
@@ -56,17 +36,17 @@ def make_model(new_model_config=None):
             else:
                 print(f"Using set value for {key}:\t {model_config[key]}")
 
-    ######################
-    ## Assign Materials ##
-    ######################
+    #####################
+    ## Assign Materials##
+    #####################
 
     plasma_material = dt_plasma()
     first_wall_material = tungsten()
+    cooling_channel_material = burner_mixture(model_config['slurry_ratio'])
+    cooling_vessel_material = tungsten()
     vacuum_vessel_material = v4cr4ti()
     flibe_material = flibe(model_config['li6_enrichment'])
-    cooling_channel_material = burner_mixture(model_config['slurry_ratio'], flibe=flibe_material)
-    cooling_vessel_material = v4cr4ti()
-    blanket_material = burner_mixture(model_config['slurry_ratio'], flibe=flibe_material)
+    blanket_material = burner_mixture(model_config['slurry_ratio'])
     blanket_vessel_material = v4cr4ti()
     
     #####################
@@ -91,17 +71,17 @@ def make_model(new_model_config=None):
     first_wall_inner_surface = openmc.ZTorus(x0=0,y0=0,z0=0,a=R,b=first_wall_inner_radius,c=first_wall_inner_radius)
     first_wall_outer_surface = openmc.ZTorus(x0=0,y0=0,z0=0,a=R,b=first_wall_outer_radius,c=first_wall_outer_radius)
 
-    vacuum_vessel_inner_radius = first_wall_outer_radius # These two are in contact
-    vacuum_vessel_outer_radius = vacuum_vessel_inner_radius + vacuum_vessel_thickness
-    vacuum_vessel_inner_surface = first_wall_outer_surface
-    vacuum_vessel_outer_surface = openmc.ZTorus(x0=0,y0=0,z0=0,a=R,b=vacuum_vessel_outer_radius,c=vacuum_vessel_outer_radius)
-
-    cooling_vessel_inner_radius = vacuum_vessel_outer_radius+cooling_channel_width
+    cooling_vessel_inner_radius = first_wall_outer_radius + cooling_channel_width
     cooling_vessel_outer_radius = cooling_vessel_inner_radius + cooling_vessel_thickness
     cooling_vessel_inner_surface = openmc.ZTorus(x0=0,y0=0,z0=0,a=R,b=cooling_vessel_inner_radius,c=cooling_vessel_inner_radius)
     cooling_vessel_outer_surface = openmc.ZTorus(x0=0,y0=0,z0=0,a=R,b=cooling_vessel_outer_radius,c=cooling_vessel_outer_radius)
 
-    blanket_vessel_inner_radius = cooling_vessel_outer_radius+blanket_width
+    vacuum_vessel_inner_radius = cooling_vessel_outer_radius # These two are in contact
+    vacuum_vessel_outer_radius = vacuum_vessel_inner_radius + vacuum_vessel_thickness
+    vacuum_vessel_inner_surface = cooling_vessel_outer_surface 
+    vacuum_vessel_outer_surface = openmc.ZTorus(x0=0,y0=0,z0=0,a=R,b=vacuum_vessel_outer_radius,c=vacuum_vessel_outer_radius)
+
+    blanket_vessel_inner_radius = vacuum_vessel_outer_radius+blanket_width
     blanket_vessel_outer_radius = blanket_vessel_inner_radius + blanket_vessel_thickness
     blanket_vessel_inner_surface = openmc.ZTorus(x0=0,y0=0,z0=0,a=R,b=blanket_vessel_inner_radius,c=blanket_vessel_inner_radius)
     blanket_vessel_outer_surface = openmc.ZTorus(x0=0,y0=0,z0=0,a=R,b=blanket_vessel_outer_radius,c=blanket_vessel_outer_radius)
@@ -133,21 +113,14 @@ def make_model(new_model_config=None):
 
     first_wall_cell = openmc.Cell(
         name='first_wall_cell',
-        region=+first_wall_inner_surface & -vacuum_vessel_inner_surface & torus_section,
+        region=+first_wall_inner_surface & -first_wall_outer_surface & torus_section,
         fill=first_wall_material
     )
-    first_wall_cell.fill.volume = (2*np.pi*R)*np.pi*(vacuum_vessel_inner_radius**2 - first_wall_inner_radius**2)*volume_correction
-
-    vacuum_vessel_cell = openmc.Cell(
-        name='vacuum_vessel_cell',
-        region=+vacuum_vessel_inner_surface & -vacuum_vessel_outer_surface & torus_section,
-        fill=vacuum_vessel_material
-    )
-    vacuum_vessel_cell.fill.volume = (2*np.pi*R)*np.pi*(vacuum_vessel_outer_radius**2 - vacuum_vessel_inner_radius**2)*volume_correction
+    first_wall_cell.fill.volume = (2*np.pi*R)*np.pi*(first_wall_outer_radius**2 - first_wall_inner_radius**2)*volume_correction
 
     cooling_channel_cell = openmc.Cell(
         name='cooling_channel_cell',
-        region=+vacuum_vessel_outer_surface & -cooling_vessel_inner_surface & torus_section,
+        region=+first_wall_outer_surface & -cooling_vessel_inner_surface & torus_section,
         fill=cooling_channel_material
     )
 
@@ -158,10 +131,16 @@ def make_model(new_model_config=None):
     )
     cooling_vessel_cell.fill.volume = (2*np.pi*R)*np.pi*(cooling_vessel_outer_radius**2 - cooling_vessel_inner_radius**2)*volume_correction
     
+    vacuum_vessel_cell = openmc.Cell(
+        name='vacuum_vessel_cell',
+        region=+vacuum_vessel_inner_surface & -vacuum_vessel_outer_surface & torus_section,
+        fill=vacuum_vessel_material
+    )
+    vacuum_vessel_cell.fill.volume = (2*np.pi*R)*np.pi*(vacuum_vessel_outer_radius**2 - vacuum_vessel_inner_radius**2)*volume_correction
 
     blanket_cell = openmc.Cell(
         name='blanket_cell',
-        region=+cooling_vessel_outer_surface & -blanket_vessel_inner_surface & torus_section,
+        region=+vacuum_vessel_outer_surface & -blanket_vessel_inner_surface & torus_section,
         fill=blanket_material
     )
 
@@ -182,9 +161,9 @@ def make_model(new_model_config=None):
     universe.add_cell(plasma_cell)
     universe.add_cell(sol_cell)
     universe.add_cell(first_wall_cell)
-    universe.add_cell(vacuum_vessel_cell)
     universe.add_cell(cooling_channel_cell)
     universe.add_cell(cooling_vessel_cell)
+    universe.add_cell(vacuum_vessel_cell)
     universe.add_cell(blanket_cell)
     universe.add_cell(blanket_vessel_cell)
     universe.add_cell(bounding_sphere_cell)
@@ -221,9 +200,9 @@ def make_model(new_model_config=None):
     #####################
 
     first_wall_cell_filter = openmc.CellFilter([first_wall_cell])
-    vacuum_vessel_cell_filter = openmc.CellFilter([vacuum_vessel_cell])
     cooling_channel_cell_filter = openmc.CellFilter([cooling_channel_cell])
     cooling_vessel_cell_filter = openmc.CellFilter([cooling_vessel_cell])
+    vacuum_vessel_cell_filter = openmc.CellFilter([vacuum_vessel_cell])
     blanket_cell_filter = openmc.CellFilter([blanket_cell])
     tritium_cell_filter = openmc.CellFilter([cooling_channel_cell, blanket_cell])
     energy_filter = openmc.EnergyFilter(np.logspace(0,7)) # 1eV to 100MeV
@@ -239,8 +218,6 @@ def make_model(new_model_config=None):
     tally2.scores = ["(n,Xt)"]
 
     #power deposition - heating
-    # TODO: talk about doing coupled photon transport in the future
-    # Definitely want the option to turn coupled photon on/off because it is computationally expensive
     first_wall_heating_tally = openmc.Tally(tally_id=3, name="neutron_heating_first_wall")
     first_wall_heating_tally.filters = [first_wall_cell_filter]
     first_wall_heating_tally.scores = ["heating"]
@@ -257,10 +234,8 @@ def make_model(new_model_config=None):
     cooling_vessel_heating_tally.filters = [cooling_vessel_cell_filter]
     cooling_vessel_heating_tally.scores = ["heating"]
 
-
     tallies = openmc.Tallies([tally1,tally2,
-                              first_wall_heating_tally,vacuum_vessel_heating_tally,
-                              cooling_channel_heating_tally,cooling_vessel_heating_tally]) 
+                              first_wall_heating_tally,vacuum_vessel_heating_tally, cooling_channel_heating_tally, cooling_vessel_heating_tally]) 
 
     # Create model
     model = openmc.Model(geometry=geometry,
