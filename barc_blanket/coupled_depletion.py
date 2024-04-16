@@ -10,17 +10,20 @@ openmc.config['chain_file'] = CHAIN_FILE
 
 # create model from barc_model_simple_toroidal.py
 
-model = make_model()
+model = make_model(new_model_config={'particles':200,
+                   'batches': 20})
 
 # Set timesteps and source rates
 # must have one source rate per timestep
 
-timesteps = [10.0, 10.0, 10.0]  # days
+timesteps_years = np.linspace(0, 200, 11)  # years
+
+timesteps = np.array(timesteps_years) * 365 # convert to days
 
 efus = 17.6e6  # eV
 ev2j = 1.60218e-19
-Pfus = 1000e6  # W
-neutron_rate = Pfus / efus / ev2j  # n/s
+Pfus = 2000e6  # W
+neutron_rate = Pfus / (efus / ev2j)  # n/s
 
 source_rates = np.ones_like(timesteps)*neutron_rate
 

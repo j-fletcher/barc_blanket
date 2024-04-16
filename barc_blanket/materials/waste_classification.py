@@ -261,7 +261,57 @@ def separate_nuclides(original_material:openmc.Material, nuclide_removal_efficie
     
     return new_material
 
-#def vitrify_waste(material:openmc.Material, weight_percent_ratio)
+def remove_tritium(material:openmc.Material, efficiency):
+    """Remove tritium from a material with a given efficiency
+    
+    Parameters:
+    -----------
+    material: openmc.Material
+        The material to remove tritium from
+    efficiency: float
+        The efficiency of tritium removal (between 0 and 1)
+    
+    Returns:
+    --------
+    new_material: openmc.Material
+        A new material with the same contents as the original but with tritium removed,
+        and remaining concentrations adjusted accordingly
+    """
+
+    return separate_nuclides(material, {'H3': efficiency})
+
+def remove_flibe(material:openmc.Material, efficiency):
+    """Remove FLiBe from a material with a given efficiency
+    
+    Parameters:
+    -----------
+    material: openmc.Material
+        The material to remove FLiBe from
+    efficiency: float
+        The efficiency of FLiBe removal (between 0 and 1)
+    
+    Returns:
+    --------
+    new_material: openmc.Material
+        A new material with the same contents as the original but with FLiBe removed,
+        and remaining concentrations adjusted accordingly
+    """
+
+    flibe_removal_dict = {
+        'F19': efficiency,
+        'Li6': efficiency,
+        'Li7': efficiency,
+        'Be9': efficiency,
+        'Be10': efficiency
+    }
+
+    return separate_nuclides(material, flibe_removal_dict)
+
+
+def vitrify_waste(material:openmc.Material, weight_percent_ratio):
+    """Vitrify a material by adding a certain amount of borosilicate glass"""
+    
+
 
 def make_activity_volume_density(nuclide_activities_Ci_per_m3:dict):
     """Create a material with the given nuclides and activity concentrations in Ci/m3

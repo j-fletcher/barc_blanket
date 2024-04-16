@@ -136,7 +136,7 @@ def make_model(new_model_config=None):
         region=+first_wall_inner_surface & -vacuum_vessel_inner_surface & torus_section,
         fill=first_wall_material
     )
-    first_wall_cell.fill.volume = (2*np.pi*R)*np.pi*(vacuum_vessel_inner_radius**2 - first_wall_inner_radius**2)*volume_correction
+    first_wall_cell.fill.volume = (2*np.pi*R)*np.pi*(first_wall_outer_radius**2 - first_wall_inner_radius**2)*volume_correction
 
     vacuum_vessel_cell = openmc.Cell(
         name='vacuum_vessel_cell',
@@ -150,6 +150,7 @@ def make_model(new_model_config=None):
         region=+vacuum_vessel_outer_surface & -cooling_vessel_inner_surface & torus_section,
         fill=cooling_channel_material
     )
+    cooling_channel_cell.fill.volume = (2*np.pi*R)*np.pi*(cooling_vessel_inner_radius**2 - vacuum_vessel_outer_radius**2)*volume_correction
 
     cooling_vessel_cell = openmc.Cell(
         name='cooling_vessel_cell',
@@ -164,6 +165,7 @@ def make_model(new_model_config=None):
         region=+cooling_vessel_outer_surface & -blanket_vessel_inner_surface & torus_section,
         fill=blanket_material
     )
+    blanket_cell.fill.volume = (2*np.pi*R)*np.pi*(blanket_vessel_inner_radius**2 - cooling_vessel_outer_radius**2)*volume_correction
 
     blanket_vessel_cell = openmc.Cell(
         name='blanket_vessel_cell',
