@@ -3,6 +3,7 @@ import openmc
 import numpy as np
 
 from .materials import dt_plasma, flibe, burner_mixture, v4cr4ti, tungsten
+from barc_blanket.materials.waste_classification import separate_nuclides
 
 # Default model parameters
 # TODO: this all assumes a circular cross-section, which is not necessarily the case
@@ -24,6 +25,9 @@ DEFAULT_PARAMETERS = {
 
     'li6_enrichment': 0.076,        # atom% enrichment of Li6 in the FLiBe
     'slurry_ratio': 0.01,           # weight% slurry in the burner blanket
+    'removed_Sr90': 0.0,            # fraction of Sr90 removed from the waste stream
+    'removed_Cs137': 0.0,           # fraction of Cs137 removed from the waste stream
+    'removed_Tc99': 0.0,            # fraction of Tc99 removed from the waste stream
   
     'batches': 50,               # Number of batches to run
     'particles': int(1e5),       # Number of particles per batch
@@ -68,7 +72,20 @@ def make_model(new_model_config=None):
     cooling_vessel_material = v4cr4ti()
     blanket_material = burner_mixture(model_config['slurry_ratio'], flibe=flibe_material)
     blanket_vessel_material = v4cr4ti()
-    
+
+    # Remove some nuclides from blanket materials if applicable
+    removed_materials_dict = {}
+    if not np.isclose(model_config['removed_Sr90'], 0):
+        removed_materials_dict['Sr90'] = model_config['removed_Sr90']
+    if not np.isclose(model_config['removed_Cs137'], 0):
+        removed_materials_dict['Cs137'] = model_config['removed_Cs137']
+    if not np.isclose(model_config['removed_Tc99'], 0):
+        removed_materials_dict['Tc99'] = model_config['removed_Tc99']
+
+    if len(removed_materials_dict.keys()) > 0:
+        cooling_channel_material = separate_nuclides(cooling_channel_material, removed_materials_dict)
+        blanket_material = separate_nuclides(blanket_material, removed_materials_dict)
+
     #####################
     ## Define Geometry ##
     #####################
