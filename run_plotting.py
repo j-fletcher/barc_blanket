@@ -1,8 +1,9 @@
 # Simple file to ensure plotting cross sections works
 import openmc
 import barc_blanket.plot_cross_sections as pltxs
+from barc_blanket.vessel_activation import CROSS_SECTIONS
 
-openmc.config['cross_sections'] = '/home/zkeith/proj/openmc_test/endfb-viii.0-hdf5/cross_sections.xml'
+openmc.config['cross_sections'] = CROSS_SECTIONS
 
 # 1. make a simple 'enriched uranium' material to compare results with
 uranium_fuel = openmc.Material(name='Uranium Fuel')
@@ -27,13 +28,20 @@ tank_contents.add_nuclide('Pu239', 0.2)
 tank_contents.add_nuclide('Pu238', 0.2)
 tank_contents.set_density('g/cm3', 8.0)
 
-waste_fraction = 0.01 # Starting with 1% of the burner blanket contents being waste
+tungsten = openmc.Material(name='Tungsten')
+tungsten.add_element('W', 1.0)
+
+waste_fraction = 0.00 # Starting with 1% of the burner blanket contents being waste
 slurry = openmc.Material.mix_materials([flibe, tank_contents], [1-waste_fraction, waste_fraction], name="Slurry")
 
 # 3. Plot the cross sections for the materials
 
-fig = pltxs.nu_fission([uranium_fuel, slurry], normalize=True)
-fig.savefig('nu_fission.png')
+# fig = pltxs.nu_fission([slurry, tungsten], normalize=False)
+# fig.savefig('nu_fission.png')
 
-fig = pltxs.nu_scatter([uranium_fuel, slurry], normalize=True)
-fig.savefig('nu_scatter.png')
+# fig = pltxs.nu_scatter([slurry, tungsten], normalize=False)
+# fig.savefig('nu_scatter.png')
+
+fig = pltxs.total_cross_section([flibe, tungsten], normalize=False)
+fig.savefig('total_cross_section.png')
+
