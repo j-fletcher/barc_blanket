@@ -281,7 +281,10 @@ def create_waste_material(tank,phase,mat_name):
         return elements_separated_dict
 
     def remove_duplicate_surveys(nuclides_present,elements_present,compounds_present):
-        
+        # gives priority to surveys of the total mass of an element, when present
+        # failing this, if the element is present within a compound, the mass of the element contained in all compounds is used
+        # known masses of radionuclides are subtracted from the total element mass surveyed, so that the remainder is added using natural abundance
+
         for element in ['C','H','O','P','N','Cl','F','S']:
             if element not in elements_present.keys():
                 if compounds_present[element] > 0:
