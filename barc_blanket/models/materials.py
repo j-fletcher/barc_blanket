@@ -115,14 +115,6 @@ def tank_contents():
     #Tank material object containing all present waste phases
     tank_contents = openmc.Material.mix_materials([tank1_SCS,tank1_SLS,tank1_SS],[SCS_frac,SLS_frac,SS_frac],'vo')
 
-    # remove nuclides that doen't exist in ENDF/B-VIII.0
-    tank_contents.remove_nuclide('Cd113_m1')
-    tank_contents.remove_nuclide('Ba137_m1')
-    tank_contents.remove_nuclide('C14')
-    tank_contents.remove_nuclide('Co60')
-    tank_contents.remove_nuclide('Nb93_m1')
-    tank_contents.remove_nuclide('C0')
-
     tank_contents.depletable = True
     tank_contents.name = 'tank_contents'
     return tank_contents
