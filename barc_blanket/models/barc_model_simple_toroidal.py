@@ -28,6 +28,7 @@ DEFAULT_PARAMETERS = {
     'removed_Sr90': 0.0,            # fraction of Sr90 removed from the waste stream
     'removed_Cs137': 0.0,           # fraction of Cs137 removed from the waste stream
     'removed_Tc99': 0.0,            # fraction of Tc99 removed from the waste stream
+    'removed_C0': 1.0,              # Remove elemental carbon from waste for depletion chain reasons
   
     'batches': 50,               # Number of batches to run
     'particles': int(1e5),       # Number of particles per batch
@@ -81,6 +82,8 @@ def make_model(new_model_config=None):
         removed_materials_dict['Cs137'] = model_config['removed_Cs137']
     if not np.isclose(model_config['removed_Tc99'], 0):
         removed_materials_dict['Tc99'] = model_config['removed_Tc99']
+    if not np.isclose(model_config['removed_C0'], 0):
+        removed_materials_dict['C0'] = model_config['removed_C0']
 
     if len(removed_materials_dict.keys()) > 0:
         cooling_channel_material = separate_nuclides(cooling_channel_material, removed_materials_dict)
