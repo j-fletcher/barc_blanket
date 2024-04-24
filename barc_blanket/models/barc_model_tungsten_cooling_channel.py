@@ -4,7 +4,7 @@ import numpy as np
 
 from .barc_model_simple_toroidal import DEFAULT_PARAMETERS
 
-from .materials import dt_plasma, flibe, burner_mixture, v4cr4ti, tungsten
+from .materials_tools import dt_plasma, flibe, burner_mixture, v4cr4ti, tungsten
 
 # Default model parameters
 # TODO: this all assumes a circular cross-section, which is not necessarily the case
