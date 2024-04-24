@@ -2,8 +2,8 @@ from pathlib import Path
 import openmc
 import openmc.deplete
 import numpy as np
-from models.barc_model_simple_toroidal import make_model
-from utilities import CROSS_SECTIONS, CHAIN_FILE
+from barc_blanket.models.barc_model_simple_toroidal import make_model
+from barc_blanket.utilities import CROSS_SECTIONS, CHAIN_FILE
 
 openmc.config['cross_sections'] = CROSS_SECTIONS
 openmc.config['chain_file'] = CHAIN_FILE
@@ -16,7 +16,7 @@ model = make_model(new_model_config={'particles':200,
 # Set timesteps and source rates
 # must have one source rate per timestep
 
-timesteps_years = np.linspace(0, 200, 11)  # years
+timesteps_years = np.linspace(1/365, 200, 11)  # years
 
 timesteps = np.array(timesteps_years) * 365 # convert to days
 

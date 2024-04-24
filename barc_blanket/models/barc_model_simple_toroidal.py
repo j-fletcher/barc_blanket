@@ -2,7 +2,7 @@ import os
 import openmc
 import numpy as np
 
-from .materials import dt_plasma, flibe, burner_mixture, v4cr4ti, tungsten
+from .materials_tools import dt_plasma, flibe, burner_mixture, v4cr4ti, tungsten
 from barc_blanket.materials.waste_classification import separate_nuclides
 
 # Default model parameters
