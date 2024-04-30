@@ -15,10 +15,12 @@ model = make_model(new_model_config={'particles':200,
 
 # Set timesteps and source rates
 # must have one source rate per timestep
-
-timesteps_years = np.linspace(1/365, 200, 11)  # years
-
+nt = 10
+t_max = 100 # years
+timesteps_years = t_max * np.ones(nt) / nt  # years
 timesteps = np.array(timesteps_years) * 365 # convert to days
+print(timesteps)
+print(sum(timesteps_years))
 
 efus = 17.6e6  # eV
 ev2j = 1.60218e-19
@@ -31,12 +33,12 @@ source_rates = np.ones_like(timesteps)*neutron_rate
 
 op = openmc.deplete.CoupledOperator(model, 
                                     reduce_chain=True, 
-                                    reduce_chain_level=3, 
+                                    reduce_chain_level=5, 
                                     normalization_mode='source-rate')
 
 # Set output directory 
 
-output_dir = Path('./depletion_results')
+output_dir = Path('./depletion_results/endf8_chain_modified')
 op.output_dir=output_dir
 
 # Run model
