@@ -1,4 +1,5 @@
 import openmc
+import openmc.data
 
 CURIES_PER_BECQUEREL = 1/3.7e10 # NRC uses curies, OpenMC uses becquerels
 KG_PER_AMU = 1.66e-27
@@ -205,9 +206,17 @@ def separate_nuclides(original_material:openmc.Material, nuclide_removal_efficie
     # Then we will re-create the material with a mixture of the remaining nuclides using wt%
     # And finally we will adjust the density of the material to take into account what was removed
 
-    # Get the nuclides in the material
-    nuclides = original_material.get_nuclides()
-    original_total_mass_density = original_material.get_mass_density()
+
+    # get_mass_density is EXTREMELY slow because calculates the mass density for each nuclide but only returns one.
+    # SO: we're gonna sidestep it by calculating the mass density ourself, since that's what we need to do anyway.
+    nuclide_atom_densities = original_material.get_nuclide_atom_densities()
+    # This is exactly what get_mass_density does, but we're going to hold onto the result instead of throwing it away each time
+    original_total_mass_density = 0.0
+    nuclide_mass_densities = {}
+    for nuc, atoms_per_bcm in nuclide_atom_densities.items():
+        density_i = 1e24 * atoms_per_bcm * openmc.data.atomic_mass(nuc) / openmc.data.AVOGADRO
+        original_total_mass_density += density_i
+        nuclide_mass_densities[nuc] = density_i
 
     # Remove the nuclides with the given efficiencies
     # While doing this, keep track of each nuclide's mass density,
@@ -216,8 +225,8 @@ def separate_nuclides(original_material:openmc.Material, nuclide_removal_efficie
     remaining_mass_densities = {}
     remaining_total_mass_density = 0
     removed_volume = 0
-    for nuclide in nuclides:
-        original_mass_density = original_material.get_mass_density(nuclide)
+    for nuclide in nuclide_atom_densities.keys():
+        original_mass_density = nuclide_mass_densities[nuclide]
         if nuclide in nuclide_removal_efficiencies.keys():
             efficiency = nuclide_removal_efficiencies[nuclide]
             # Ensure that efficiency is actually between 0 and 1
@@ -244,7 +253,7 @@ def separate_nuclides(original_material:openmc.Material, nuclide_removal_efficie
     # Assuming the volume change is linear with respect to mass density
     new_mass_densities = {}
     new_total_mass_density = 0
-    for nuclide in nuclides:
+    for nuclide in nuclide_atom_densities.keys():
         new_mass_density = remaining_mass_densities[nuclide] / (1 - removed_volume)
         new_mass_densities[nuclide] = new_mass_density
         new_total_mass_density += new_mass_density
@@ -307,12 +316,9 @@ def remove_flibe(material:openmc.Material, efficiency):
 
     return separate_nuclides(material, flibe_removal_dict)
 
-
 def vitrify_waste(material:openmc.Material, weight_percent_ratio):
     """Vitrify a material by adding a certain amount of borosilicate glass"""
     
-
-
 def make_activity_volume_density(nuclide_activities_Ci_per_m3:dict):
     """Create a material with the given nuclides and activity concentrations in Ci/m3
     
