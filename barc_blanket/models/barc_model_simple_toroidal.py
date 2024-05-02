@@ -92,6 +92,7 @@ def make_model(new_model_config=None):
     if not np.isclose(model_config['removed_Pu'], 0):
         removed_materials_dict['Pu239'] = model_config['removed_Pu']
         removed_materials_dict['Pu240'] = model_config['removed_Pu']
+        removed_materials_dict['Pu241'] = model_config['removed_Pu']
 
     if len(removed_materials_dict.keys()) > 0:
         cooling_channel_material = separate_nuclides(cooling_channel_material, removed_materials_dict)

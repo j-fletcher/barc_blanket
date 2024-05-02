@@ -28,7 +28,7 @@ print(sum(timesteps_years))
 
 efus = 17.6e6  # eV
 ev2j = 1.60218e-19
-Pfus = 2200e2  # W
+Pfus = 2200e6  # W
 neutron_rate = Pfus / (efus * ev2j)  # n/s
 
 source_rates = np.ones_like(timesteps)*neutron_rate
@@ -42,7 +42,7 @@ op = openmc.deplete.CoupledOperator(model,
 
 # Set output directory 
 
-output_dir = Path('./depletion_results/barc-v3-5-percent-waste')
+output_dir = Path('./depletion_results/barc-v3-5-percent-waste-u-removed')
 op.output_dir=output_dir
 
 # Run model
