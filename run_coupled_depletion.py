@@ -10,8 +10,12 @@ openmc.config['chain_file'] = CHAIN_FILE
 
 # create model from barc_model_simple_toroidal.py
 
-model = make_model(new_model_config={'particles':200,
-                   'batches': 20})
+model = make_model(new_model_config={
+    'slurry_ratio': 0.05,
+    'removed_U': 0.0,
+    'removed_Pu': 0.0,
+    'particles': int(1e3)
+    })
 
 # Set timesteps and source rates
 # must have one source rate per timestep
@@ -24,8 +28,8 @@ print(sum(timesteps_years))
 
 efus = 17.6e6  # eV
 ev2j = 1.60218e-19
-Pfus = 2000e6  # W
-neutron_rate = Pfus / (efus / ev2j)  # n/s
+Pfus = 2200e2  # W
+neutron_rate = Pfus / (efus * ev2j)  # n/s
 
 source_rates = np.ones_like(timesteps)*neutron_rate
 
@@ -33,12 +37,12 @@ source_rates = np.ones_like(timesteps)*neutron_rate
 
 op = openmc.deplete.CoupledOperator(model, 
                                     reduce_chain=True, 
-                                    reduce_chain_level=5, 
+                                    reduce_chain_level=3, 
                                     normalization_mode='source-rate')
 
 # Set output directory 
 
-output_dir = Path('./depletion_results/endf8_chain_modified')
+output_dir = Path('./depletion_results/barc-v3-5-percent-waste')
 op.output_dir=output_dir
 
 # Run model
