@@ -214,7 +214,7 @@ class TestCoupledDepletion:
                 materials = results.export_to_materials(burnup_index=i, path='materials.xml')
                 material_at_times.append(materials[0])
 
-            # Ensure the amount of Gd-157 is reduced at each time step
+            # Ensure the amount of C14 is reduced at each time step
             atoms_at_times = [material.get_nuclide_atoms()['C14'] for material in material_at_times]
 
             for i in range(1, len(atoms_at_times)):
