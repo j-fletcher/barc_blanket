@@ -1,13 +1,9 @@
 import openmc
 import openmc.deplete
-import pytest
 import os
 import numpy as np
 
-from barc_blanket.utilities import working_directory, CROSS_SECTIONS, CHAIN_FILE
-
-openmc.config['cross_sections'] = f"{CROSS_SECTIONS}"
-openmc.config['chain_file'] = f"{CHAIN_FILE}"
+from barc_blanket.utilities import working_directory
 
 class TestCoupledDepletion:
 
