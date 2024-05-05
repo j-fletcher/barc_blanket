@@ -29,6 +29,24 @@ def flibe(li6_enrichment=None):
     flibe.set_density("g/cm3", 1.94)
     return flibe
 
+# Lithium deuteride
+def lid():
+    lid = openmc.Material(name='lid')
+    lid.depletable = True
+    lid.add_element('Li', 1.0, 'ao')
+    lid.add_nuclide('H2', 1.0, 'ao')
+    lid.set_density('g/cm3', 0.82)
+    return lid
+
+# Lead lithium
+def pbli():
+    pbli = openmc.Material(name='pbli')
+    pbli.depletable = True
+    pbli.add_element('Pb', 84.2, 'ao')
+    pbli.add_element('Li', 15.8, 'ao')
+    pbli.set_density('g/cm3', 10.2)
+    return pbli
+
 # Inconel 718 -
 def inconel718():
     inconel718 = openmc.Material(name='inconel718')

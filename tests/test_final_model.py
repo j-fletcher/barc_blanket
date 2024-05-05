@@ -26,5 +26,6 @@ class TestFinalModel:
 
             # Save the figure
             fig.savefig("geometry.png")
+
             
 
