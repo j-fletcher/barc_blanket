@@ -85,18 +85,18 @@ def make_model(new_model_config=None):
 
     first_wall_inner_radius = a
     first_wall_outer_radius = a + first_wall_thickness
-    first_wall_inner_surface = openmc.ZTorus(x0=0,y0=0,z0=0,a=R,b=first_wall_inner_radius*elongation,a=first_wall_inner_radius)
-    first_wall_outer_surface = openmc.ZTorus(x0=0,y0=0,z0=0,a=R,b=first_wall_outer_radius*elongation,a=first_wall_outer_radius)
+    first_wall_inner_surface = openmc.ZTorus(x0=0,y0=0,z0=0,a=R,b=first_wall_inner_radius*elongation,c=first_wall_inner_radius)
+    first_wall_outer_surface = openmc.ZTorus(x0=0,y0=0,z0=0,a=R,b=first_wall_outer_radius*elongation,c=first_wall_outer_radius)
 
     cooling_vessel_inner_radius = first_wall_outer_radius + cooling_channel_width
     cooling_vessel_outer_radius = cooling_vessel_inner_radius + cooling_vessel_thickness
-    cooling_vessel_inner_surface = openmc.ZTorus(x0=0,y0=0,z0=0,a=R,b=cooling_vessel_inner_radius*elongation,a=cooling_vessel_inner_radius)
-    cooling_vessel_outer_surface = openmc.ZTorus(x0=0,y0=0,z0=0,a=R,b=cooling_vessel_outer_radius*elongation,a=cooling_vessel_outer_radius)
+    cooling_vessel_inner_surface = openmc.ZTorus(x0=0,y0=0,z0=0,a=R,b=cooling_vessel_inner_radius*elongation,c=cooling_vessel_inner_radius)
+    cooling_vessel_outer_surface = openmc.ZTorus(x0=0,y0=0,z0=0,a=R,b=cooling_vessel_outer_radius*elongation,c=cooling_vessel_outer_radius)
 
     vacuum_vessel_inner_radius = cooling_vessel_outer_radius # These two are in contact
     vacuum_vessel_outer_radius = vacuum_vessel_inner_radius + vacuum_vessel_thickness
     vacuum_vessel_inner_surface = cooling_vessel_outer_surface
-    vacuum_vessel_outer_surface = openmc.ZTorus(x0=0,y0=0,z0=0,a=R,b=vacuum_vessel_outer_radius*elongation,a=vacuum_vessel_outer_radius)
+    vacuum_vessel_outer_surface = openmc.ZTorus(x0=0,y0=0,z0=0,a=R,b=vacuum_vessel_outer_radius*elongation,c=vacuum_vessel_outer_radius)
 
     # Since the blanket is sorta offset by the gaps, I'm just modeling it as torus with a different major radius
     blanket_vessel_offset = (model_config['blanket_outboard_gap'] - model_config['blanket_inboard_gap'])/2
@@ -104,8 +104,8 @@ def make_model(new_model_config=None):
     blanket_vessel_major_radius = R + blanket_vessel_offset
     blanket_vessel_inner_radius = vacuum_vessel_outer_radius + blanket_vessel_average_width
     blanket_vessel_outer_radius = blanket_vessel_inner_radius + blanket_vessel_thickness
-    blanket_vessel_inner_surface = openmc.ZTorus(x0=0,y0=0,z0=0,a=blanket_vessel_major_radius,b=blanket_vessel_inner_radius*elongation,a=blanket_vessel_inner_radius)
-    blanket_vessel_outer_surface = openmc.ZTorus(x0=0,y0=0,z0=0,a=blanket_vessel_major_radius,b=blanket_vessel_outer_radius*elongation,a=blanket_vessel_outer_radius)
+    blanket_vessel_inner_surface = openmc.ZTorus(x0=0,y0=0,z0=0,a=blanket_vessel_major_radius,b=blanket_vessel_inner_radius*elongation*0.8,c=blanket_vessel_inner_radius)
+    blanket_vessel_outer_surface = openmc.ZTorus(x0=0,y0=0,z0=0,a=blanket_vessel_major_radius,b=blanket_vessel_outer_radius*elongation*0.8,c=blanket_vessel_outer_radius)
 
     # Make two p
         # Make two planes to cut the torus into a section
@@ -159,7 +159,7 @@ def make_model(new_model_config=None):
         region=+vacuum_vessel_outer_surface & -blanket_vessel_inner_surface & torus_section,
         fill=model_config['blanket_material']
     )
-    enclosed_volume = (2*np.pi*blanket_vessel_major_radius)*np.pi*blanket_vessel_inner_radius**2*elongation
+    enclosed_volume = (2*np.pi*blanket_vessel_major_radius)*np.pi*blanket_vessel_inner_radius**2*elongation*0.8
     removed_volume = (2*np.pi*R)*np.pi*vacuum_vessel_outer_radius**2*elongation
     blanket_cell.fill.volume = (enclosed_volume - removed_volume) * volume_correction
 
