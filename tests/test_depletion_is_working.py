@@ -6,6 +6,7 @@ import pytest
 import matplotlib.pyplot as plt
 
 from barc_blanket.utilities import working_directory
+from barc_blanket.materials.blanket_depletion import gw_to_neutron_rate
 
 class TestCoupledDepletion:
 
@@ -86,10 +87,8 @@ class TestCoupledDepletion:
             timesteps_years = np.array([10, 10, 10, 10])
             timesteps_days = np.array(timesteps_years) * 365
 
-            efus = 17.6e6  # eV
-            ev2j = 1.60218e-19
             fusion_power = 2.2e9 # 2.2 GW
-            neutron_rate = fusion_power / (efus * ev2j)  # n/s
+            neutron_rate = gw_to_neutron_rate(fusion_power)
             source_rates = np.ones_like(timesteps_years) * neutron_rate
 
             op = openmc.deplete.CoupledOperator(model, 
@@ -190,10 +189,8 @@ class TestCoupledDepletion:
             timesteps_years = np.array([10, 10, 10, 10])
             timesteps_days = np.array(timesteps_years) * 365
 
-            efus = 17.6e6  # eV
-            ev2j = 1.60218e-19
             fusion_power = 2.2e9 # 2.2 GW
-            neutron_rate = fusion_power / (efus * ev2j)  # n/s
+            neutron_rate = gw_to_neutron_rate(fusion_power)
             source_rates = np.ones_like(timesteps_years) * neutron_rate
 
             op = openmc.deplete.CoupledOperator(model, 
@@ -352,10 +349,8 @@ class TestCoupledDepletion:
 
             timesteps_days = np.array([10, 10, 10, 10])
 
-            efus = 17.6e6  # eV
-            ev2j = 1.60218e-19
             fusion_power = 2.2e9 # 2.2 GW
-            neutron_rate = fusion_power / (efus * ev2j)  # n/s
+            neutron_rate = gw_to_neutron_rate(fusion_power)
             source_rates = np.ones_like(timesteps_days) * neutron_rate
 
             op = openmc.deplete.CoupledOperator(model, 
@@ -518,10 +513,8 @@ class TestCoupledDepletion:
 
             timesteps_days = np.array([10, 10, 10, 10])
 
-            efus = 17.6e6  # eV
-            ev2j = 1.60218e-19
             fusion_power = 2.2e9 # 2.2 GW
-            neutron_rate = fusion_power / (efus * ev2j)  # n/s
+            neutron_rate = gw_to_neutron_rate(fusion_power)
             source_rates = np.ones_like(timesteps_days) * neutron_rate
 
             op = openmc.deplete.CoupledOperator(model, 
