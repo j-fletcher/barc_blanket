@@ -87,7 +87,7 @@ class TestCoupledDepletion:
             timesteps_years = np.array([10, 10, 10, 10])
             timesteps_days = np.array(timesteps_years) * 365
 
-            fusion_power = 2.2e9 # 2.2 GW
+            fusion_power = 2.2 # 2.2 GW
             neutron_rate = gw_to_neutron_rate(fusion_power)
             source_rates = np.ones_like(timesteps_years) * neutron_rate
 
@@ -126,8 +126,8 @@ class TestCoupledDepletion:
 
             R = 1.0
             inner_surface_radius = 0.2
-            gadonlinium_width = 0.1
-            outer_surface_radius = inner_surface_radius + gadonlinium_width
+            carbon_width = 0.1
+            outer_surface_radius = inner_surface_radius + carbon_width
 
             inner_surface = openmc.ZTorus(x0=0,y0=0,z0=0,a=R,b=inner_surface_radius,c=inner_surface_radius)
             outer_surface = openmc.ZTorus(x0=0,y0=0,z0=0,a=R,b=outer_surface_radius,c=outer_surface_radius)
@@ -186,12 +186,11 @@ class TestCoupledDepletion:
             model=openmc.Model(geometry=geometry, 
                                settings=settings)
 
-            timesteps_years = np.array([10, 10, 10, 10])
-            timesteps_days = np.array(timesteps_years) * 365
+            timesteps_days = [1]*20
 
-            fusion_power = 2.2e9 # 2.2 GW
+            fusion_power = 2.2 # 2.2 GW
             neutron_rate = gw_to_neutron_rate(fusion_power)
-            source_rates = np.ones_like(timesteps_years) * neutron_rate
+            source_rates = np.ones_like(timesteps_days) * neutron_rate
 
             op = openmc.deplete.CoupledOperator(model, 
                                     reduce_chain=True, 
@@ -210,6 +209,14 @@ class TestCoupledDepletion:
 
             # Ensure the amount of C14 is reduced at each time step
             atoms_at_times = [material.get_nuclide_atoms()['C14'] for material in material_at_times]
+
+            # Plot the results and save to file (if you're interested)
+            fig, ax = plt.subplots()
+            ax.plot(results.get_times(), atoms_at_times)
+            ax.set_xlabel("Time [days]")
+            ax.set_ylabel("Number of atoms")
+            # Save fig as png
+            plt.savefig("depletion_results.png")
 
             for i in range(1, len(atoms_at_times)):
                 assert atoms_at_times[i] < atoms_at_times[i-1], f"Expected C14 to be depleted but got {atoms_at_times[i]:0.2e}"

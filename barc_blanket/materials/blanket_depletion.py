@@ -39,7 +39,7 @@ def run_coupled_depletion(model, timesteps_years, fusion_power):
     
     openmc.deplete.CECMIntegrator(op, timesteps_days, source_rates=source_rates, timestep_units='d').integrate()
 
-def postprocess_coupled_depletion(flibe_material_index):
+def postprocess_coupled_depletion(flibe_material_index, remove_C14=False):
     """Postprocess the results of a coupled depletion run
     
     Assumed to be ran in the same directory as the depletion results
@@ -67,7 +67,7 @@ def postprocess_coupled_depletion(flibe_material_index):
         sample_material = removed_flibe
 
 
-        table_1_sum_of_fractions, table_1_culprits = sum_of_fractions(sample_material, 1, None)
+        table_1_sum_of_fractions, table_1_culprits = sum_of_fractions(sample_material, 1, None, remove_C14=remove_C14)
         table_2_sum_of_fractions, table_2_culprits = sum_of_fractions(sample_material, 2, 3)
 
         print(f"Time: {time} years")

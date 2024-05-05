@@ -33,7 +33,7 @@ DEFAULT_PARAMETERS = {
     'photon_transport': False
 }
 
-FLIBE_MATERIAL_ID = 5
+BLANKET_MATERIAL_ID = 5
 
 def make_model(new_model_config=None):
     """Create an OpenMC model using the given configuration
