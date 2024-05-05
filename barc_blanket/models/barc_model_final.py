@@ -33,6 +33,8 @@ DEFAULT_PARAMETERS = {
     'photon_transport': False
 }
 
+FLIBE_MATERIAL_ID = 5
+
 def make_model(new_model_config=None):
     """Create an OpenMC model using the given configuration
     
@@ -105,7 +107,7 @@ def make_model(new_model_config=None):
     blanket_vessel_inner_radius = vacuum_vessel_outer_radius + blanket_vessel_average_width
     blanket_vessel_outer_radius = blanket_vessel_inner_radius + blanket_vessel_thickness
     blanket_vessel_inner_surface = openmc.ZTorus(x0=0,y0=0,z0=0,a=blanket_vessel_major_radius,b=blanket_vessel_inner_radius*elongation*0.8,c=blanket_vessel_inner_radius)
-    blanket_vessel_outer_surface = openmc.ZTorus(x0=0,y0=0,z0=0,a=blanket_vessel_major_radius,b=blanket_vessel_outer_radius*elongation*0.8,c=blanket_vessel_outer_radius)
+    blanket_vessel_outer_surface = openmc.ZTorus(x0=0,y0=0,z0=0,a=blanket_vessel_major_radius,b=blanket_vessel_outer_radius*elongation*0.8,c=blanket_vessel_outer_radius, boundary_type='vacuum')
 
     # Make two p
         # Make two planes to cut the torus into a section

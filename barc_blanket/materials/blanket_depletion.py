@@ -39,7 +39,7 @@ def run_coupled_depletion(model, timesteps_years, fusion_power):
     
     openmc.deplete.CECMIntegrator(op, timesteps_days, source_rates=source_rates, timestep_units='d').integrate()
 
-def postprocess_coupled_depletion(cooling_channel_index, blanket_index):
+def postprocess_coupled_depletion(flibe_material_index):
     """Postprocess the results of a coupled depletion run
     
     Assumed to be ran in the same directory as the depletion results
@@ -53,32 +53,11 @@ def postprocess_coupled_depletion(cooling_channel_index, blanket_index):
     # round to nearest int
     times_years = np.round(times_years).astype(int)
 
-    cooling_channel_composition_at_time = []
     blanket_composition_at_time = []
 
     for i, time in enumerate(times_years):
         materials = results.export_to_materials(burnup_index=i, path='materials.xml')
-        cooling_channel_composition_at_time.append(materials[cooling_channel_index])
-        blanket_composition_at_time.append(materials[blanket_index])
-
-    cooling_channel_result_dictionary = {}
-    for cooling_channel_material, time in zip(cooling_channel_composition_at_time, times_years):
-
-        removed_tritium = remove_tritium(cooling_channel_material, 0.9)
-        removed_flibe = remove_flibe(removed_tritium, 0.9)
-        sample_material = removed_flibe
-
-        table_1_sum_of_fractions, table_1_culprits = sum_of_fractions(sample_material, 1, None)
-        table_2_sum_of_fractions, table_2_culprits = sum_of_fractions(sample_material, 2, 3)
-
-        print(f"Time: {time} years")
-        print(f"Table 1 sum of fractions: {table_1_sum_of_fractions:0.2f}")
-        print(f"Table 2 sum of fractions: {table_2_sum_of_fractions:0.2f}")
-
-        cooling_channel_result_dictionary[time] = {'table_1_sum_of_fractions': table_1_sum_of_fractions,
-                                    'table_1_culprits': table_1_culprits,
-                                    'table_2_sum_of_fractions': table_2_sum_of_fractions,
-                                    'table_2_culprits': table_2_culprits}
+        blanket_composition_at_time.append(materials[flibe_material_index])
 
     blanket_result_dictionary = {}
     for blanket_material, time in zip(blanket_composition_at_time, times_years):
@@ -100,8 +79,7 @@ def postprocess_coupled_depletion(cooling_channel_index, blanket_index):
                                     'table_2_sum_of_fractions': table_2_sum_of_fractions,
                                     'table_2_culprits': table_2_culprits}
         
-    full_result_dictionary = {'cooling_channel': cooling_channel_result_dictionary,
-                                'blanket': blanket_result_dictionary}
+    full_result_dictionary = {'blanket': blanket_result_dictionary}
 
     # Pickle the results
     with open('waste_classification_results.pkl', 'wb') as f:
