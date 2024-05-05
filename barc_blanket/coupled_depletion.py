@@ -21,7 +21,7 @@ timesteps_years = np.linspace(0, 200, 11)  # years
 
 timesteps = np.array(timesteps_years) * 365 # convert to days
 
-fusion_power = 2.2e9 # 2.2 GW
+fusion_power = 2.2 # 2.2 GW
 neutron_rate = gw_to_neutron_rate(fusion_power)
 source_rates = np.ones_like(timesteps)*neutron_rate
 

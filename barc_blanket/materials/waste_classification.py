@@ -53,7 +53,7 @@ TABLE_2_VOLUME_CONCENTRATION = {
     }
 }
 
-def sum_of_fractions(material:openmc.Material, table, column):
+def sum_of_fractions(material:openmc.Material, table, column, remove_C14=False):
     """Calculate the sum of fractions of a material
     See paragraph 7 on this page:
     https://www.nrc.gov/reading-rm/doc-collections/cfr/part061/part061-0055.html
@@ -77,6 +77,9 @@ def sum_of_fractions(material:openmc.Material, table, column):
 
     # Get the nuclides in the material
     nuclides = material.get_nuclides()
+
+    if remove_C14:
+        nuclides.remove("C14")
 
     # Determine which dictionary to use and fill in missing values if applicable
     if table == 1:
@@ -117,6 +120,15 @@ def sum_of_fractions(material:openmc.Material, table, column):
     nuclide_activity_Ci_per_m3 = {nuclide: activity * CURIES_PER_BECQUEREL * CUBIC_CENTIMETERS_PER_CUBIC_METER for nuclide, activity in nuclide_activity_Bq_per_cm3.items()}
     nuclide_activity_Bq_per_g = material.get_activity(by_nuclide=True, units="Bq/g")
     nuclide_activity_nCi_per_g = {nuclide: activity * CURIES_PER_BECQUEREL * 1e9 for nuclide, activity in nuclide_activity_Bq_per_g.items()}
+
+    # Make sure each activity is greater than 0
+    for nuclide in nuclides:
+        if nuclide in volume_concentration.keys():
+            if nuclide_activity_Ci_per_m3[nuclide] < 0:
+                raise ValueError(f"Activity for {nuclide} is negative")
+        elif mass_concentration is not None and nuclide in mass_concentration.keys():
+            if nuclide_activity_nCi_per_g[nuclide] < 0:
+                raise ValueError(f"Activity for {nuclide} is negative")
 
     # Calculate the sum of fractions
     sum_of_fractions = 0
