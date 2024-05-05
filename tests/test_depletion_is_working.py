@@ -5,11 +5,8 @@ import numpy as np
 import pytest
 import matplotlib.pyplot as plt
 
-from barc_blanket.utilities import working_directory, CROSS_SECTIONS, CHAIN_FILE
+from barc_blanket.utilities import working_directory
 from barc_blanket.materials.blanket_depletion import gw_to_neutron_rate
-
-#openmc.config['cross_sections'] = CROSS_SECTIONS
-#openmc.config['chain_file'] = CHAIN_FILE
 
 class TestCoupledDepletion:
 
@@ -189,12 +186,11 @@ class TestCoupledDepletion:
             model=openmc.Model(geometry=geometry, 
                                settings=settings)
 
-            timesteps_years = np.array([10, 10, 10, 10])
-            timesteps_days = np.array(timesteps_years) * 365
+            timesteps_days = [1]*20
 
             fusion_power = 2.2 # 2.2 GW
             neutron_rate = gw_to_neutron_rate(fusion_power)
-            source_rates = np.ones_like(timesteps_years) * neutron_rate
+            source_rates = np.ones_like(timesteps_days) * neutron_rate
 
             op = openmc.deplete.CoupledOperator(model, 
                                     reduce_chain=True, 
@@ -214,9 +210,6 @@ class TestCoupledDepletion:
             # Ensure the amount of C14 is reduced at each time step
             atoms_at_times = [material.get_nuclide_atoms()['C14'] for material in material_at_times]
 
-            for i in range(1, len(atoms_at_times)):
-                assert atoms_at_times[i] < atoms_at_times[i-1], f"Expected C14 to be depleted but got {atoms_at_times[i]:0.2e}"
-
             # Plot the results and save to file (if you're interested)
             fig, ax = plt.subplots()
             ax.plot(results.get_times(), atoms_at_times)
@@ -224,6 +217,9 @@ class TestCoupledDepletion:
             ax.set_ylabel("Number of atoms")
             # Save fig as png
             plt.savefig("depletion_results.png")
+
+            for i in range(1, len(atoms_at_times)):
+                assert atoms_at_times[i] < atoms_at_times[i-1], f"Expected C14 to be depleted but got {atoms_at_times[i]:0.2e}"
 
     def test_multicell_material_depletion_just_works(self):
         """Verify that having one material in two different cells 'just works'
