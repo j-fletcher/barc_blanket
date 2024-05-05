@@ -1,4 +1,5 @@
 import openmc
+import openmc.data
 
 CURIES_PER_BECQUEREL = 1/3.7e10 # NRC uses curies, OpenMC uses becquerels
 KG_PER_AMU = 1.66e-27
@@ -315,12 +316,9 @@ def remove_flibe(material:openmc.Material, efficiency):
 
     return separate_nuclides(material, flibe_removal_dict)
 
-
 def vitrify_waste(material:openmc.Material, weight_percent_ratio):
     """Vitrify a material by adding a certain amount of borosilicate glass"""
     
-
-
 def make_activity_volume_density(nuclide_activities_Ci_per_m3:dict):
     """Create a material with the given nuclides and activity concentrations in Ci/m3
     
