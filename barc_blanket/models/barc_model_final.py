@@ -1,4 +1,5 @@
 import openmc
+import numpy as np
 
 DEFAULT_PARAMETERS = {
 
@@ -39,7 +40,6 @@ def make_model(new_model_config=None):
         An OpenMC model object
     """
 
-    
     if new_model_config is None:
         model_config = DEFAULT_PARAMETERS
     else:
@@ -54,6 +54,10 @@ def make_model(new_model_config=None):
     ######################
     ## Assign Materials ##
     ######################
+
+    #####################
+    ## Define Geometry ##
+    #####################
 
     R = model_config['major_radius']
     a = model_config['minor_radius']
@@ -87,5 +91,29 @@ def make_model(new_model_config=None):
     vacuum_vessel_outer_surface = openmc.ZTorus(x0=0,y0=0,z0=0,a=R,b=vacuum_vessel_outer_radius*elongation,a=vacuum_vessel_outer_radius)
 
     # Since the blanket is sorta offset by the gaps, I'm just modeling it as torus with a different major radius
-    blanket_vessel_inner_radius = vacuum_vessel_outer_radius
+    blanket_vessel_offset = (model_config['blanket_outboard_gap'] - model_config['blanket_inboard_gap'])/2
+    blanket_vessel_average_width = (model_config['blanket_outboard_gap'] + model_config['blanket_inboard_gap'])/2
+    blanket_vessel_major_radius = R + blanket_vessel_offset
+    blanket_vessel_inner_radius = vacuum_vessel_outer_radius + blanket_vessel_average_width
+    blanket_vessel_outer_radius = blanket_vessel_inner_radius + blanket_vessel_thickness
+    blanket_vessel_inner_surface = openmc.ZTorus(x0=0,y0=0,z0=0,a=blanket_vessel_major_radius,b=blanket_vessel_inner_radius*elongation,a=blanket_vessel_inner_radius)
+    blanket_vessel_outer_surface = openmc.ZTorus(x0=0,y0=0,z0=0,a=blanket_vessel_major_radius,b=blanket_vessel_outer_radius*elongation,a=blanket_vessel_outer_radius)
+
+    # Make two p
+        # Make two planes to cut the torus into a section
+    # Angle follows right hand rule around z axis (https://www.desmos.com/3d/214a6bb908)
+    section_angle_rad = np.radians(model_config['section_angle'])
+    x_coeff, y_coeff = np.sin(section_angle_rad), -np.cos(section_angle_rad)
+    xz_plane = openmc.Plane(a=0, b=1, boundary_type='periodic')
+    angled_plane = openmc.Plane(a=x_coeff, b=y_coeff, boundary_type='periodic')
+    xz_plane.periodic_surface = angled_plane
+    torus_section = +xz_plane & +angled_plane
+
+    volume_correction = model_config['section_angle']/360
+
+    # Create cells
+    plasma_cell = openmc.Cell(
+        name='plasma_cell',
+        region=-plasma_surface & torus_section,
+    )
     
