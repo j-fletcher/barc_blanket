@@ -6,7 +6,9 @@ def plot_geometry(model):
     universe = model.geometry.root_universe
 
     universe.plot(pixels=500000,
-                color_by='cell',
+                  width=(800,400),
+                  origin=(480, 150, 0),
+                  color_by='cell',
                 axes=ax[0]
                 )
 

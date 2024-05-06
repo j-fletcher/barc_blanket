@@ -60,11 +60,6 @@ def make_model(new_model_config=None):
             else:
                 print(f"Using set value for {key}:\t {model_config[key]}")
 
-
-    ######################
-    ## Assign Materials ##
-    ######################
-
     #####################
     ## Define Geometry ##
     #####################

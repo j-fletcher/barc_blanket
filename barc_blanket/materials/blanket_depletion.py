@@ -85,9 +85,9 @@ def postprocess_coupled_depletion(flibe_material_index, remove_C14=False):
     with open('waste_classification_results.pkl', 'wb') as f:
         pkl.dump(full_result_dictionary, f)
 
-def plot_results():
+def plot_results(case:str, print_name:str):
 
-    with open('waste_classification_results.pkl', 'rb') as f:
+    with open(f'waste_classification_results.pkl', 'rb') as f:
         result_dictionary = pkl.load(f)
 
     for cell in result_dictionary.keys():
@@ -105,11 +105,11 @@ def plot_results():
             table_1_sum_of_fractions.append(cell_result_dictionary[time]['table_1_sum_of_fractions'])
             table_2_sum_of_fractions.append(cell_result_dictionary[time]['table_2_sum_of_fractions'])
 
-        # Plot the results on a single plot
+        # Plot the results on a single plot with semilog y axis
         fig, ax = plt.subplots()
-        ax.plot(times, table_1_sum_of_fractions, label='Table 1', linewidth=2)
-        ax.plot(times, table_2_sum_of_fractions, label='Table 2', linewidth=2)
-        ax.set_xlabel('Time [years]', fontsize=16)
+        ax.semilogy(times, table_1_sum_of_fractions, label='Table 1')
+        ax.semilogy(times, table_2_sum_of_fractions, label='Table 2')
+        ax.set_xlabel('Time (years)', fontsize=16)
         ax.set_ylabel('Sum of Fractions', fontsize=16)
 
         # Put a horizontal line at 1 for reference
@@ -117,12 +117,11 @@ def plot_results():
         # Put a horizontal line at 2.33 for reference
         ax.axhline(2.33, color='purple', linestyle='--', label='CCLLW with Vitrification', linewidth=2)
         ax.set_xlim(0, 100)
-        ax.set_ylim(0, 16)
         ax.legend()
-        ax.set_title(f'Sum of Fractions with Raw Tank Material', fontsize=18)
+        ax.set_title(f'{print_name} Sum of Fractions', fontsize=18)
 
         # Save figure to file
-        fig.savefig(f'{cell}_sum_of_fractions.png')
+        fig.savefig(f'{case}_sum_of_fractions.png')
 
         # Culprits in Table 1
 
@@ -138,8 +137,8 @@ def plot_results():
         ax.set_xlabel('Nuclide', fontsize=16)
         ax.set_ylabel('Fraction', fontsize=16)
 
-        ax.set_title(f'Table 1 dominant nuclides at {time} years', fontsize=18)
+        ax.set_title(f'{print_name} Table 1 dominant nuclides at {time} years', fontsize=18)
 
         # Save figure to file
-        fig.savefig(f'{cell}_table_1_culprits.png')
+        fig.savefig(f'{case}_table_1_culprits.png')
         
