@@ -11,7 +11,7 @@ from barc_blanket.materials.waste_classification import separate_nuclides
 # See 'simple_toroidal.png' for a diagram of the geometry
 
 DEFAULT_PARAMETERS = {
-    'major_radius': 450,            # All dimensions are in cm
+    'major_radius': 480,            # All dimensions are in cm
     'plasma_minor_radius': 138,
     'sol_width': 2,
     'first_wall_thickness': 0.1,          # How thick the plasma facing material is
@@ -23,14 +23,22 @@ DEFAULT_PARAMETERS = {
 
     'section_angle': 45,            # Angle of the toroidal section in degrees
 
-    'li6_enrichment': 0.076,        # atom% enrichment of Li6 in the FLiBe
+    'li6_enrichment': 7.6,        # atom% enrichment of Li6 in the FLiBe
     'slurry_ratio': 0.01,           # weight% slurry in the burner blanket
     'removed_Sr90': 0.0,            # fraction of Sr90 removed from the waste stream
     'removed_Cs137': 0.0,           # fraction of Cs137 removed from the waste stream
-    'removed_Tc99': 0.0,            # fraction of Tc99 removed from the waste stream
+    'removed_Tc99': 0.0,            # fraction of Tc99 removed 
     'removed_C0': 0.0,              # Remove elemental carbon from waste for depletion chain reasons
-    'removed_U': 0.0,              # Remove elemental carbon from waste for depletion chain reasons
-    'removed_Pu': 0.0,              # Remove elemental carbon from waste for depletion chain reasons
+    'removed_U': 0.0,               # fraction of U removed from from the waste stream
+    'removed_Pu': 0.0,              # fraction of Pu removed from from the waste stream
+    'removed_Th': 0.0,              # fraction of Th removed from from the waste stream
+
+    'materials_xml_id':1,           # ID for the materials XML file to use
+                                    #1 - most active tank, all waste phases present
+                                    #2 - All-tank mix, all waste phases present
+                                    #3 - All-tank mix, U, Th, Pu removed
+                                    #4 - All-tank mix, sludge phases only, Sr, Cs removed
+                                    #5 - All-tank mix, sludge phases only, Sr, Cs, U, Th, Pu removed
   
     'batches': 50,               # Number of batches to run
     'particles': int(1e5),       # Number of particles per batch
@@ -71,9 +79,13 @@ def make_model(new_model_config=None):
     first_wall_material = tungsten()
     vacuum_vessel_material = v4cr4ti()
     flibe_material = flibe(model_config['li6_enrichment'])
-    cooling_channel_material = burner_mixture(model_config['slurry_ratio'], flibe=flibe_material)
+    cooling_channel_material = burner_mixture(model_config['slurry_ratio'],
+                                      id=model_config['materials_xml_id'],
+                                      flibe=flibe_material)
     cooling_vessel_material = v4cr4ti()
-    blanket_material = burner_mixture(model_config['slurry_ratio'], flibe=flibe_material)
+    blanket_material = burner_mixture(model_config['slurry_ratio'],
+                                      id=model_config['materials_xml_id'],
+                                      flibe=flibe_material)
     blanket_vessel_material = v4cr4ti()
 
     # Remove some nuclides from blanket materials if applicable
@@ -86,6 +98,8 @@ def make_model(new_model_config=None):
         removed_materials_dict['Tc99'] = model_config['removed_Tc99']
     if not np.isclose(model_config['removed_C0'], 0):
         removed_materials_dict['C0'] = model_config['removed_C0']
+        removed_materials_dict['C12'] = model_config['removed_C0']
+        removed_materials_dict['C13'] = model_config['removed_C0']
     if not np.isclose(model_config['removed_U'], 0):
         removed_materials_dict['U235'] = model_config['removed_U']
         removed_materials_dict['U238'] = model_config['removed_U']
@@ -288,10 +302,16 @@ def make_model(new_model_config=None):
     cooling_vessel_heating_tally.filters = [cooling_vessel_cell_filter]
     cooling_vessel_heating_tally.scores = ["heating"]
 
+    # add n,gamma reaction for carbon-14
+    carbon_14_tally = openmc.Tally(tally_id=7, name="carbon_14_n_gamma")
+    carbon_14_tally.filters = [tritium_cell_filter]
+    carbon_14_tally.scores = ["(n,gamma)"]
+    carbon_14_tally.nuclides=['C14']
 
     tallies = openmc.Tallies([tally1,tally2,
                               first_wall_heating_tally,vacuum_vessel_heating_tally,
-                              cooling_channel_heating_tally,cooling_vessel_heating_tally]) 
+                              cooling_channel_heating_tally,cooling_vessel_heating_tally,
+                              carbon_14_tally]) 
 
     # Create model
     model = openmc.Model(geometry=geometry,
