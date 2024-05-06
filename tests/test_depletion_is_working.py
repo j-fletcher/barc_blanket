@@ -88,7 +88,7 @@ class TestCoupledDepletion:
             timesteps_days = np.array(timesteps_years) * 365
 
             fusion_power = 2.2 # 2.2 GW
-            neutron_rate = gw_to_neutron_rate(fusion_power)
+            neutron_rate = gw_to_neutron_rate(fusion_power, 1.0)
             source_rates = np.ones_like(timesteps_years) * neutron_rate
 
             op = openmc.deplete.CoupledOperator(model, 
@@ -189,7 +189,7 @@ class TestCoupledDepletion:
             timesteps_days = [1]*20
 
             fusion_power = 2.2 # 2.2 GW
-            neutron_rate = gw_to_neutron_rate(fusion_power)
+            neutron_rate = gw_to_neutron_rate(fusion_power, 1.0)
             source_rates = np.ones_like(timesteps_days) * neutron_rate
 
             op = openmc.deplete.CoupledOperator(model, 
@@ -356,8 +356,8 @@ class TestCoupledDepletion:
 
             timesteps_days = np.array([10, 10, 10, 10])
 
-            fusion_power = 2.2e9 # 2.2 GW
-            neutron_rate = gw_to_neutron_rate(fusion_power)
+            fusion_power = 2.2 # 2.2 GW
+            neutron_rate = gw_to_neutron_rate(fusion_power, 1.0)
             source_rates = np.ones_like(timesteps_days) * neutron_rate
 
             op = openmc.deplete.CoupledOperator(model, 
@@ -370,9 +370,9 @@ class TestCoupledDepletion:
             # Load depletion results
             results = openmc.deplete.Results("depletion_results.h5")
             times = results.get_times()
-            cell_a_results = results.get_atoms("1", "Gd157")[1]
-            cell_b_results = results.get_atoms("2", "Gd157")[1]
-            cell_cd_results = results.get_atoms("3", "Gd157")[1]
+            cell_a_results = results.get_atoms("8", "Gd157")[1]
+            cell_b_results = results.get_atoms("9", "Gd157")[1]
+            cell_cd_results = results.get_atoms("10", "Gd157")[1]
 
             # Plot the results and save to file (if you're interested)
             fig, ax = plt.subplots()
@@ -520,8 +520,8 @@ class TestCoupledDepletion:
 
             timesteps_days = np.array([10, 10, 10, 10])
 
-            fusion_power = 2.2e9 # 2.2 GW
-            neutron_rate = gw_to_neutron_rate(fusion_power)
+            fusion_power = 2.2 # 2.2 GW
+            neutron_rate = gw_to_neutron_rate(fusion_power, 1.0)
             source_rates = np.ones_like(timesteps_days) * neutron_rate
 
             op = openmc.deplete.CoupledOperator(model, 
@@ -534,9 +534,9 @@ class TestCoupledDepletion:
             # Load depletion results
             results = openmc.deplete.Results("depletion_results.h5")
             times = results.get_times()
-            cell_a_results = results.get_atoms("1", "Gd157")[1]
-            cell_c_results = results.get_atoms("2", "Gd157")[1]
-            cell_bd_results = results.get_atoms("3", "Gd157")[1]
+            cell_a_results = results.get_atoms("8", "Gd157")[1]
+            cell_c_results = results.get_atoms("9", "Gd157")[1]
+            cell_bd_results = results.get_atoms("10", "Gd157")[1]
 
             # Plot the results and save to file (if you're interested)
             fig, ax = plt.subplots()

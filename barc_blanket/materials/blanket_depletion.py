@@ -4,13 +4,23 @@ import matplotlib.pyplot as plt
 
 import openmc.deplete
 from barc_blanket.materials.waste_classification import sum_of_fractions, remove_flibe, remove_tritium
+from barc_blanket.models.barc_model_final import SECTION_CORRECTION
 
-def gw_to_neutron_rate(gw):
-    """Convert GW of fusion power to neutron rate in n/s"""
+def gw_to_neutron_rate(gw, section_correction=SECTION_CORRECTION):
+    """Convert GW of fusion power to neutron rate in n/s
+    
+    Parameters
+    ----------
+    gw : float
+        Fusion power in GW
+    section_correction : float, optional
+        Fraction of total torus that the section takes up to adjust total neutron rate.
+        Default is using the section correction from barc_model_final.py
+    """
 
     efus = 17.6e6  # eV
     ev2j = 1.60218e-19
-    neutron_rate = gw*1e9 / (efus * ev2j)  # n/s
+    neutron_rate = gw*1e9 * section_correction / (efus * ev2j)  # n/s
 
     return neutron_rate
 
