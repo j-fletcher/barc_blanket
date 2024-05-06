@@ -79,7 +79,10 @@ def sum_of_fractions(material:openmc.Material, table, column, remove_C14=False):
     nuclides = material.get_nuclides()
 
     if remove_C14:
-        nuclides.remove("C14")
+        try:
+            nuclides.remove("C14")
+        except ValueError:
+            pass
 
     # Determine which dictionary to use and fill in missing values if applicable
     if table == 1:

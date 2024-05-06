@@ -17,8 +17,6 @@ DEFAULT_PARAMETERS = {
     'blanket_outboard_gap': 130,
     'blanket_inboard_gap': 100,
 
-    'section_angle': 360/14, # 14 coils -> this many degrees per coil
-
     'plasma_material': dt_plasma(),
     'first_wall_material': tungsten(),
     'cooling_vessel_material': tungsten(),
@@ -34,6 +32,7 @@ DEFAULT_PARAMETERS = {
 }
 
 BLANKET_MATERIAL_ID = 5
+SECTION_CORRECTION = 1/14 # This model is a section of the torus, so the volume is 1/14 of the total volume
 
 def make_model(new_model_config=None):
     """Create an OpenMC model using the given configuration
@@ -59,11 +58,6 @@ def make_model(new_model_config=None):
                 model_config[key] = DEFAULT_PARAMETERS[key]
             else:
                 print(f"Using set value for {key}:\t {model_config[key]}")
-
-
-    ######################
-    ## Assign Materials ##
-    ######################
 
     #####################
     ## Define Geometry ##
@@ -112,14 +106,12 @@ def make_model(new_model_config=None):
     # Make two p
         # Make two planes to cut the torus into a section
     # Angle follows right hand rule around z axis (https://www.desmos.com/3d/214a6bb908)
-    section_angle_rad = np.radians(model_config['section_angle'])
+    section_angle_rad = np.radians(360*SECTION_CORRECTION)
     x_coeff, y_coeff = np.sin(section_angle_rad), -np.cos(section_angle_rad)
     xz_plane = openmc.Plane(a=0, b=1, boundary_type='periodic')
     angled_plane = openmc.Plane(a=x_coeff, b=y_coeff, boundary_type='periodic')
     xz_plane.periodic_surface = angled_plane
     torus_section = +xz_plane & +angled_plane
-
-    volume_correction = model_config['section_angle']/360
 
     # Create cells
     plasma_cell = openmc.Cell(
@@ -133,28 +125,28 @@ def make_model(new_model_config=None):
         region=+first_wall_inner_surface & -first_wall_outer_surface & torus_section,
         fill=model_config['first_wall_material']
     )
-    first_wall_cell.fill.volume = (2*np.pi*R)*np.pi*(first_wall_outer_radius**2 - first_wall_inner_radius**2)*elongation*volume_correction
+    first_wall_cell.fill.volume = (2*np.pi*R)*np.pi*(first_wall_outer_radius**2 - first_wall_inner_radius**2)*elongation*SECTION_CORRECTION
 
     cooling_channel_cell = openmc.Cell(
         name='cooling_channel_cell',
         region=+first_wall_outer_surface & -cooling_vessel_inner_surface & torus_section,
         fill=model_config['blanket_material']
     )
-    cooling_channel_cell.fill.volume = (2*np.pi*R)*np.pi*(first_wall_outer_radius**2 - cooling_vessel_inner_radius**2)*elongation*volume_correction
+    cooling_channel_cell.fill.volume = (2*np.pi*R)*np.pi*(first_wall_outer_radius**2 - cooling_vessel_inner_radius**2)*elongation*SECTION_CORRECTION
 
     cooling_vessel_cell = openmc.Cell(
         name='cooling_vessel_cell',
         region=+cooling_vessel_inner_surface & -cooling_vessel_outer_surface & torus_section,
         fill=model_config['cooling_vessel_material']
     )
-    cooling_vessel_cell.fill.volume = (2*np.pi*R)*np.pi*(cooling_vessel_outer_radius**2 - cooling_vessel_inner_radius**2)*elongation*volume_correction
+    cooling_vessel_cell.fill.volume = (2*np.pi*R)*np.pi*(cooling_vessel_outer_radius**2 - cooling_vessel_inner_radius**2)*elongation*SECTION_CORRECTION
 
     vacuum_vessel_cell = openmc.Cell(
         name='vacuum_vessel_cell',
         region=+vacuum_vessel_inner_surface & -vacuum_vessel_outer_surface & torus_section,
         fill=model_config['vacuum_vessel_material']
     )
-    vacuum_vessel_cell.fill.volume = (2*np.pi*R)*np.pi*(vacuum_vessel_outer_radius**2 - vacuum_vessel_inner_radius**2)*elongation*volume_correction
+    vacuum_vessel_cell.fill.volume = (2*np.pi*R)*np.pi*(vacuum_vessel_outer_radius**2 - vacuum_vessel_inner_radius**2)*elongation*SECTION_CORRECTION
 
     blanket_cell = openmc.Cell(
         name='blanket_cell',
@@ -163,14 +155,14 @@ def make_model(new_model_config=None):
     )
     enclosed_volume = (2*np.pi*blanket_vessel_major_radius)*np.pi*blanket_vessel_inner_radius**2*elongation*0.8
     removed_volume = (2*np.pi*R)*np.pi*vacuum_vessel_outer_radius**2*elongation
-    blanket_cell.fill.volume = (enclosed_volume - removed_volume) * volume_correction
+    blanket_cell.fill.volume = (enclosed_volume - removed_volume) * SECTION_CORRECTION
 
     blanket_vessel_cell = openmc.Cell(
         name='blanket_vessel_cell',
         region=+blanket_vessel_inner_surface & -blanket_vessel_outer_surface & torus_section,
         fill=model_config['blanket_vessel_material']
     )
-    blanket_vessel_cell.fill.volume = (2*np.pi*blanket_vessel_major_radius)*np.pi*(blanket_vessel_outer_radius**2 - blanket_vessel_inner_radius**2)*elongation*volume_correction
+    blanket_vessel_cell.fill.volume = (2*np.pi*blanket_vessel_major_radius)*np.pi*(blanket_vessel_outer_radius**2 - blanket_vessel_inner_radius**2)*elongation*SECTION_CORRECTION
 
     universe = openmc.Universe(
         cells=[
