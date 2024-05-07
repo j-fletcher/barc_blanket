@@ -3,6 +3,7 @@ import openmc
 import openmc.deplete
 import numpy as np
 from models.barc_model_simple_toroidal import make_model
+from materials.blanket_depletion import gw_to_neutron_rate
 from utilities import CROSS_SECTIONS, CHAIN_FILE
 
 openmc.config['cross_sections'] = CROSS_SECTIONS
@@ -20,11 +21,8 @@ timesteps_years = np.linspace(0, 200, 11)  # years
 
 timesteps = np.array(timesteps_years) * 365 # convert to days
 
-efus = 17.6e6  # eV
-ev2j = 1.60218e-19
-Pfus = 2000e6  # W
-neutron_rate = Pfus / (efus / ev2j)  # n/s
-
+fusion_power = 2.2 # 2.2 GW
+neutron_rate = gw_to_neutron_rate(fusion_power)
 source_rates = np.ones_like(timesteps)*neutron_rate
 
 # Setup CoupledOperator class 
