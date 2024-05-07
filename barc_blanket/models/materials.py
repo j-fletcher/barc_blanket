@@ -1,3 +1,4 @@
+import os
 import openmc
 from .create_waste import create_waste_material
 
@@ -27,6 +28,24 @@ def flibe(li6_enrichment=None):
 
     flibe.set_density("g/cm3", 1.94)
     return flibe
+
+# Lithium deuteride
+def lid():
+    lid = openmc.Material(name='lid')
+    lid.depletable = True
+    lid.add_element('Li', 1.0, 'ao')
+    lid.add_nuclide('H2', 1.0, 'ao')
+    lid.set_density('g/cm3', 0.82)
+    return lid
+
+# Lead lithium
+def pbli():
+    pbli = openmc.Material(name='pbli')
+    pbli.depletable = True
+    pbli.add_element('Pb', 84.2, 'ao')
+    pbli.add_element('Li', 15.8, 'ao')
+    pbli.set_density('g/cm3', 10.2)
+    return pbli
 
 # Inconel 718 -
 def inconel718():
@@ -93,34 +112,18 @@ def water():
     return water
 
 # Raw tank contents, do however you want to define this
-def tank_contents():
-    tank1_SCS = create_waste_material('241-A-106','Saltcake Solid','241-A-106-SCS')
-    tank1_SLS = create_waste_material('241-A-106','Sludge (Liquid & Solid)','241-A-106-SLS')
-    tank1_SS = create_waste_material('241-A-106','Sludge Solid','241-A-106-SS')
+def tank_contents(mixture_name:str):
+    """Return the material from the premade tank contents"""
 
-    #Tank Mixture waste phase volumes for 241-A-106 in L
-    #SIL_vol = 198000
-    SCS_vol = 84000
-    SLS_vol = 38000+110000
-    SS_vol = 41000
+    module_file_path = os.path.dirname(__file__)
+    material_xml_path = f"{module_file_path}/../materials/{mixture_name}.xml"
 
-    total_vol = SCS_vol + SLS_vol + SS_vol
+    tank_contents = openmc.Materials.from_xml(material_xml_path)[0]
 
-    #Waste Phase Volume Fraction
-    #SIL_frac = SIL_vol/total_vol
-    SCS_frac = SCS_vol/total_vol
-    SLS_frac = SLS_vol/total_vol
-    SS_frac = SS_vol/total_vol
-
-    #Tank material object containing all present waste phases
-    tank_contents = openmc.Material.mix_materials([tank1_SCS,tank1_SLS,tank1_SS],[SCS_frac,SLS_frac,SS_frac],'vo')
-
-    tank_contents.depletable = True
-    tank_contents.name = 'tank_contents'
     return tank_contents
 
 # Mixture of tank contents and flibe for the blanket
-def burner_mixture(slurry_ratio, tank_contents=tank_contents(), flibe=flibe()):
+def burner_mixture(slurry_ratio, tank_contents=tank_contents("full_tank_inventory"), flibe=flibe()):
     """Create a mixture of flibe and tank contents for the blanket
     
     Parameters:

@@ -1,8 +1,8 @@
 import os
 from contextlib import contextmanager
 
-CROSS_SECTIONS = '/usr/local/share/xs_data/endfb80_hdf5/cross_sections.xml'
-CHAIN_FILE = '/home/zkeith/openmc_resources/chain_endfb80_sfr.xml'
+CROSS_SECTIONS = os.environ['OPENMC_CROSS_SECTIONS']
+CHAIN_FILE = os.environ['OPENMC_CHAIN_FILE']
 
 @contextmanager
 def working_directory(directory):
