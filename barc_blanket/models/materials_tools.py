@@ -157,6 +157,9 @@ def get_tank_contents(id=1):
     3 - All-tank mix, U, Th, Pu removed
     4 - All-tank mix, sludge phases only, Sr, Cs removed
     5 - All-tank mix, sludge phases only, Sr, Cs, U, Th, Pu removed
+    6 - All-tank mix, sludge phases only
+    7  - All-tank mix, sludge phases only, U, Th, Pu removed
+    8 - All-tank mix, just sludge no radionuclides
     """
     if id == 1:
         # old workflow to get the most active tank material
@@ -193,6 +196,20 @@ def get_tank_contents(id=1):
     elif id == 5:
         material = import_material_from_xml("barc_blanket/materials/sludge_plus_radionuclides_no_CsSrPuThU.xml")
         tank_contents = material["1215"]
+    elif id == 6:
+        material = import_material_from_xml("barc_blanket/materials/full_tank_inventory_sludge_plus_radionuclides.xml")
+        tank_contents = material["216"]
+    elif id == 7:
+        material = import_material_from_xml("barc_blanket/materials/full_tank_inventory_sludge_radionuclides_no_PuThU.xml")
+        tank_contents = material["840"]
+    elif id == 8:
+        material = import_material_from_xml("barc_blanket/materials/full_tank_inventory_just_sludge.xml")
+        tank_contents = material["60"]
+    elif id == 9:
+        tank_contents = openmc.Material()
+        tank_contents.add_nuclide('Cs137', 0.5, 'wo')
+        tank_contents.add_nuclide('Sr90', 0.5, 'wo')
+        tank_contents.set_density('g/cm3', 2.3175)
     else:
         raise ValueError("Invalid ID for tank contents. See tank_contents function docstring for valid IDs.")
 
