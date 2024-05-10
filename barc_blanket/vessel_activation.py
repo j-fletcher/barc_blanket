@@ -2,6 +2,9 @@ import openmc
 import openmc.stats
 import openmc.deplete
 import numpy as np
+import tempfile
+from typing import Optional, List
+from barc_blanket.utilities import change_directory
 
 import os
 
@@ -281,3 +284,94 @@ def plot_2d_dose(statepoint, mesh):
             scaling_factor=scaling_factor,
         )
     plot.figure.savefig(f'shut_down_dose_map_timestep_{i_cool}')
+
+def get_cell_volume_in_mesh(
+            self,
+            model: openmc.Model,
+            n_samples: int = 10_000,
+            prn_seed: Optional[int] = None,
+            **kwargs
+    ) -> List[openmc.Material]:
+        """ Get the volume of a particular cell 
+        Based on the code here:
+        https://github.com/openmc-dev/openmc/pull/2971/files#diff-967783d59b58404de3b672e391edb35b65e00bf29f89f11edfa8b44469494c50
+        
+        Generate homogenized materials over each element in a mesh.
+        .. versionadded:: 0.14.1
+        Parameters
+        ----------
+        model : openmc.Model
+            Model containing materials to be homogenized and the associated
+            geometry.
+        n_samples : int
+            Number of samples in each mesh element.
+        prn_seed : int, optional
+            Pseudorandom number generator (PRNG) seed; if None, one will be
+            generated randomly.
+        **kwargs
+            Keyword-arguments passed to :func:`openmc.lib.init`.
+        Returns
+        -------
+        material_volumes: dict
+            A dictionary where the keys are the mesh element IDs and the values
+            are the homogenized materials over the element.
+
+
+        """
+        import openmc.lib
+
+        with change_directory(tmpdir=True):
+            # In order to get mesh into model, we temporarily replace the
+            # tallies with a single mesh tally using the current mesh
+            original_tallies = model.tallies
+            new_tally = openmc.Tally()
+            new_tally.filters = [openmc.MeshFilter(self)]
+            new_tally.scores = ['flux']
+            model.tallies = [new_tally]
+
+            # Export model to XML
+            model.export_to_model_xml()
+
+            # Get material volume fractions
+            openmc.lib.init(**kwargs)
+            mesh = openmc.lib.tallies[new_tally.id].filters[0].mesh
+            mat_volume_by_element = [
+                [
+                    (mat.id if mat is not None else None, volume)
+                    for mat, volume in mat_volume_list
+                ]
+                for mat_volume_list in mesh.material_volumes(n_samples, prn_seed)
+            ]
+            openmc.lib.finalize()
+
+            # Restore original tallies
+            model.tallies = original_tallies
+
+        # Create homogenized material for each element
+        materials = model.geometry.get_all_materials()
+        homogenized_materials = []
+        for mat_volume_list in mat_volume_by_element:
+            material_ids, volumes = [list(x) for x in zip(*mat_volume_list)]
+            total_volume = sum(volumes)
+
+            # Check for void material and remove
+            try:
+                index_void = material_ids.index(None)
+            except ValueError:
+                pass
+            else:
+                material_ids.pop(index_void)
+                volumes.pop(index_void)
+
+            # Compute volume fractions
+            volume_fracs = np.array(volumes) / total_volume
+
+            # Get list of materials and mix 'em up!
+            mats = [materials[uid] for uid in material_ids]
+            homogenized_mat = openmc.Material.mix_materials(
+                mats, volume_fracs, 'vo'
+            )
+            homogenized_mat.volume = total_volume
+            homogenized_materials.append(homogenized_mat)
+
+        return homogenized_materials
