@@ -1,6 +1,6 @@
 import openmc
 import numpy as np
-from .materials import dt_plasma, tungsten, v4cr4ti, flibe
+from .materials import dt_plasma, tungsten, v4cr4ti, flibe, ss316L, magnetmat
 
 DEFAULT_PARAMETERS = {
 
@@ -23,6 +23,7 @@ DEFAULT_PARAMETERS = {
     'vacuum_vessel_material': v4cr4ti(),
     'blanket_vessel_material': v4cr4ti(),
     'blanket_material': flibe(),
+    'magnet_material':
 
     'batches': 50,
     'inactive_batches': 5,

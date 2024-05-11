@@ -34,8 +34,8 @@ CASES = {
                       "name": "PbLi 10% Full Tank Inventory"},
 }
 
-BATCHES = 20
-PARTICLES = 1e3
+BATCHES = 100
+PARTICLES = 1e6
 PHOTON_TRANSPORT = False
 
 def main():

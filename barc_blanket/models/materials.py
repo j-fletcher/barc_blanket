@@ -111,6 +111,64 @@ def water():
     water.set_density('g/cm3', 1.0)
     return water
 
+# SS316L for magnet case
+def ss316L():
+    ss316L = openmc.Material(name='ss316L')
+    ss316L.add_element("Fe", 62.045, "wo")
+    ss316L.add_element("Cr", 18., "wo")
+    ss316L.add_element("Ni", 14., "wo")
+    ss316L.add_element("Mo", 3., "wo")
+    ss316L.add_element("Mn", 2., "wo")
+    ss316L.add_element("Si", 0.75, "wo")
+    ss316L.add_element("N", 0.1, "wo")
+    ss316L.add_element("C", 0.03, "wo")
+    ss316L.add_element("P", 0.045, "wo")
+    ss316L.add_element("S", 0.03, "wo")
+    ss316L.set_density("g/cm3", 7.99)
+
+# Magnet winding pack mixture - combination of Stefano's material definition and Jack's
+def magnetmat():
+    copper = openmc.Material(name='copper')
+    copper.add_element('Cu', 1.0)
+    copper.set_density('g/cm3', 8.96)
+
+    rebco = openmc.Material(name='rebco')
+    rebco.add_element('Y',0.07734,'ao')
+    rebco.add_element('Ba',0.154679,'ao')
+    rebco.add_element('Cu',0.232019,'ao')
+    rebco.add_element('O',0.535962,'ao')
+    rebco.set_density('g/cm3',6.4)
+
+    pbsn = openmc.Material(name='pbsn')
+    pbsn.add_element('Pb', 0.37, percent_type='wo')
+    pbsn.add_element('Sn', 0.63, percent_type='wo')
+    pbsn.set_density('g/cm3', 8.8)
+
+    hastelloy_c276 = openmc.Material(name='hastelloy_c276')
+    hastelloy_c276.add_element('Ni', 0.5456, percent_type='wo')
+    hastelloy_c276.add_element('Co', 0.025, percent_type='wo')
+    hastelloy_c276.add_element('Cr', 0.16, percent_type='wo')
+    hastelloy_c276.add_element('Mo', 0.16, percent_type='wo')
+    hastelloy_c276.add_element('Fe', 0.05, percent_type='wo')
+    hastelloy_c276.add_element('W', 0.04, percent_type='wo')
+    hastelloy_c276.add_element('Mn', 0.01, percent_type='wo')
+    hastelloy_c276.add_element('V', 0.0035, percent_type='wo')
+    hastelloy_c276.add_element('Si', 0.0008, percent_type='wo')
+    hastelloy_c276.add_element('C', 0.0001, percent_type='wo')
+    hastelloy_c276.add_element('Cu', 0.005, percent_type='wo')
+    hastelloy_c276.set_density('g/cm3', 8.89)
+
+    silver = openmc.Material(name='silver')
+    silver.add_element('Ag', 1.0)
+    silver.set_density('g/cm3', 10.49)
+
+    steel = ss316L()
+
+    tape = openmc.Material.mix_materials([copper, silver, hastelloy_c276, rebco], [10/65.35, 3/65.35, 50/65.35, 2.35/65.35], percent_type='vo')
+    magnetmat = openmc.Material.mix_materials([copper, steel, pbsn, tape], [0.15, 0.5, 0.05, 0.2], percent_type='vo', name="magnetmat")
+    
+    return magnetmat
+
 # Raw tank contents, do however you want to define this
 def tank_contents(mixture_name:str):
     """Return the material from the premade tank contents"""
