@@ -111,7 +111,7 @@ def water():
     water.set_density('g/cm3', 1.0)
     return water
 
-# SS316L for magnet case
+# SS316L for magnet and shield
 def ss316L():
     ss316L = openmc.Material(name='ss316L')
     ss316L.add_element("Fe", 62.045, "wo")
@@ -125,6 +125,16 @@ def ss316L():
     ss316L.add_element("P", 0.045, "wo")
     ss316L.add_element("S", 0.03, "wo")
     ss316L.set_density("g/cm3", 7.99)
+    return ss316L
+
+# neutron shield material
+def shield():
+    # tungsten_carbide for simplicity
+    shield = openmc.Material(name='shield')
+    shield.add_elements_from_formula('WC')
+    shield.set_density('g/cm3', 15.6)
+    return shield
+
 
 # Magnet winding pack mixture - combination of Stefano's material definition and Jack's
 def magnetmat():
