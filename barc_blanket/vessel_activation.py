@@ -37,6 +37,7 @@ def run_independent_vessel_activation(model:openmc.Model, days=365, num_timestep
 
     # Obtain a pointer to the vacuum vessel cell
     first_wall_cell = next(iter(model._cells_by_name["first_wall_cell"]))
+    cooling_vessel_cell = next(iter(model._cells_by_name["cooling_vessel_cell"]))
     vacuum_vessel_cell = next(iter(model._cells_by_name["vacuum_vessel_cell"]))
     blanket_vessel_cell = next(iter(model._cells_by_name["blanket_vessel_cell"]))
 
@@ -45,10 +46,11 @@ def run_independent_vessel_activation(model:openmc.Model, days=365, num_timestep
     # Otherwise, load them from file
     fluxes_file = 'fluxes.npy'
     # TODO: should be able to programmatically put all the microxs in one file, but for now we'll just do it separately
-    first_wall_file = 'first_wall_microxs.csv'
+    first_wall_microxs_file = 'first_wall_microxs.csv'
+    cooling_vessel_microxs_file = 'cooling_vessel_microxs.csv'
     vacuum_vessel_microxs_file = 'vacuum_vessel_microxs.csv'
     blanket_vessel_microxs_file = 'blanket_vessel_microxs.csv'
-    if os.path.exists(fluxes_file) and os.path.exists(first_wall_file) and os.path.exists(vacuum_vessel_microxs_file) and os.path.exists(blanket_vessel_microxs_file):
+    if os.path.exists(fluxes_file) and os.path.exists(first_wall_microxs_file) and os.path.exists(cooling_vessel_microxs_file) and os.path.exists(vacuum_vessel_microxs_file) and os.path.exists(blanket_vessel_microxs_file):
         with open(fluxes_file, 'rb') as f:
             fluxes = np.load(fluxes_file)
         with open(first_wall_file, 'rb') as f:

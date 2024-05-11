@@ -1,5 +1,6 @@
 import os
 import openmc
+import pickle as pkl
 
 from barc_blanket.models.barc_model_final import make_model, SECTION_CORRECTION
 from barc_blanket.utilities import working_directory
@@ -25,8 +26,8 @@ def print_neutron_heating(tallies, cell_name_base, tally_id, model):
     cell_neutron_heating_ev = tallies[tally_id].mean[0][0][0]
     midpl_neutron_heating_ev = tallies[tally_id+20].mean[0][0][0]
 
-    cell_neutron_heating_joules = cell_neutron_heating_ev * JOULES_PER_EV
-    midpl_neutron_heating_joules = midpl_neutron_heating_ev * JOULES_PER_EV
+    cell_neutron_heating_joules = cell_neutron_heating_ev * JOULES_PER_EV / SECTION_CORRECTION
+    midpl_neutron_heating_joules = midpl_neutron_heating_ev * JOULES_PER_EV / SECTION_CORRECTION
 
     cell_neutron_heating_watts = cell_neutron_heating_joules * source_particles_per_second
     midpl_neutron_heating_watts = midpl_neutron_heating_joules * source_particles_per_second
@@ -42,6 +43,12 @@ def print_neutron_heating(tallies, cell_name_base, tally_id, model):
     print(f"{cell_name_base} volumetric neutron heating: {(total_neutron_heating_watts/1e6) / total_volume_m3} [MW/m3]")
     print(f"{cell_name_base} neutron heating peaking factor: {peaking_factor}")
 
+    result_dict = {'total_MW': total_neutron_heating_watts/1e6,
+                   'volumetric_MW_m3': (total_neutron_heating_watts/1e6) / total_volume_m3,
+                   'peaking_factor': peaking_factor}
+    
+    return result_dict
+
 with working_directory("neutron_heating"):
 
     model = make_model({
@@ -50,7 +57,7 @@ with working_directory("neutron_heating"):
         'midplane_split': True
     })
 
-    rerun_model = True
+    rerun_model = False
     if rerun_model is True:
         model.run()
 
@@ -60,22 +67,13 @@ with working_directory("neutron_heating"):
     # TODO: do this programmatically instead of hardcoded here
     tallies = final_statepoint.tallies
 
-    print_neutron_heating(tallies, "first_wall", 3, model)
+    all_results = {}
 
-    # neutron_heating_vacuum_vessel_id = 4
-    # neutron_heating_vacuum_vessel_ev = tallies[neutron_heating_vacuum_vessel_id].mean[0][0][0]
-    # neutron_heating_vacuum_vessel_joules = neutron_heating_vacuum_vessel_ev * JOULES_PER_EV
-    # neutron_heating_vacuum_vessel_watts_per_gw = neutron_heating_vacuum_vessel_joules * SOURCE_PARTICLES_PER_GW
-    # print(f"Vacuum vessel neutron heating: {neutron_heating_vacuum_vessel_watts_per_gw/1e6} MW/GW")
+    all_results["first_wall"] = print_neutron_heating(tallies, "first_wall", 3, model)
+    all_results["cooling_channel"] = print_neutron_heating(tallies, "cooling_channel", 4, model)
+    all_results["cooling_vessel"] = print_neutron_heating(tallies, "cooling_vessel", 5, model)
+    all_results["vacuum_vessel"] = print_neutron_heating(tallies, "vacuum_vessel", 6, model)
+    all_results["blanket_vessel"] = print_neutron_heating(tallies, "blanket_vessel", 8, model)
 
-    # neutron_heating_cooling_channel_id = 5
-    # neutron_heating_cooling_channel_ev = tallies[neutron_heating_cooling_channel_id].mean[0][0][0]
-    # neutron_heating_cooling_channel_joules = neutron_heating_cooling_channel_ev * JOULES_PER_EV
-    # neutron_heating_cooling_channel_watts_per_gw = neutron_heating_cooling_channel_joules * SOURCE_PARTICLES_PER_GW
-    # print(f"Cooling channel neutron heating: {neutron_heating_cooling_channel_watts_per_gw/1e6} MW/GW")
-
-    # neutron_heating_cooling_vessel_id = 6
-    # neutron_heating_cooling_vessel_ev = tallies[neutron_heating_cooling_vessel_id].mean[0][0][0]
-    # neutron_heating_cooling_vessel_joules = neutron_heating_cooling_vessel_ev * JOULES_PER_EV
-    # neutron_heating_cooling_vessel_watts_per_gw = neutron_heating_cooling_vessel_joules * SOURCE_PARTICLES_PER_GW
-    # print(f"Cooling vessel neutron heating: {neutron_heating_cooling_vessel_watts_per_gw/1e6} MW/GW")
+    with open('neutron_heating_results.pkl', 'wb') as f:
+        pkl.dump(all_results, f)
