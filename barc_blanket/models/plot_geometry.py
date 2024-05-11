@@ -5,7 +5,7 @@ def plot_geometry(model):
 
     universe = model.geometry.root_universe
 
-    universe.plot(pixels=500000,
+    universe.plot(pixels=5000000,
                   width=(800,400),
                   origin=(480, 150, 0),
                   color_by='cell',
@@ -15,7 +15,7 @@ def plot_geometry(model):
     universe.plot(width=(800.0, 800.0), 
                 origin=(480.0, 0.0, 0.1), 
                 basis='xz',
-                pixels=500000,
+                pixels=5000000,
                 color_by='cell',
                 axes=ax[1]
                 )
