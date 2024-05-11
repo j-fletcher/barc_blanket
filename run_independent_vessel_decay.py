@@ -8,7 +8,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import matplotlib as mpl
 from barc_blanket.utilities import working_directory
-from barc_blanket.models.materials import water
+from barc_blanket.models.materials_tools import water
 
 result_directory = "independent_vessel_activation"
 

@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd 
 import openmc
-from create_waste_material.py import *
+from create_waste_material import *
 '''
 #################################################################
 takes in 2 inputs 
@@ -134,8 +134,8 @@ def full_tank_inventory_material(data,material_mix=0):
 		waste_phase_volume_fractions = dict(zip(tank_phase_vol_dict.keys(),volume_fractions))
 
 		total_tank_contents = openmc.Material.mix_materials(materials,volume_fractions,'vo')
-		total_tank_contents.remove_element('Cs')
-		total_tank_contents.remove_element('Sr')
+		#total_tank_contents.remove_element('Cs')
+		#total_tank_contents.remove_element('Sr')
 
 		return total_tank_contents
 
@@ -187,7 +187,10 @@ def full_tank_inventory_material(data,material_mix=0):
 		return total_tank_contents
 
 
-
+df = pd.read_csv('Tanks_Slurry_Inventory - all_tank_data.csv')
+total_waste_inventory = full_tank_inventory_material(df,2)
+openmc.Materials([total_waste_inventory]).export_to_xml("sludge_plus_radionuclides.xml")
+total_waste_inventory.export_to_xml("sludge_plus_radionuclides.xml")
 
 
 

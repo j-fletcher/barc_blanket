@@ -1,0 +1,102 @@
+<?xml version='1.0' encoding='utf-8'?>
+<model>
+  <materials>
+    <material id="1" name="dt_plasma">
+      <density units="g/cm3" value="1e-05"/>
+      <nuclide ao="1.0" name="H2"/>
+      <nuclide ao="1.0" name="H3"/>
+    </material>
+    <material depletable="true" id="5" name="v4cr4ti" volume="1">
+      <density units="g/cm3" value="6.06"/>
+      <nuclide name="V50" wo="0.0022551070895674248"/>
+      <nuclide name="V51" wo="0.9177448929104326"/>
+      <nuclide name="Cr50" wo="0.0016694746490873253"/>
+      <nuclide name="Cr52" wo="0.03347974494053836"/>
+      <nuclide name="Cr53" wo="0.0038694347274700735"/>
+      <nuclide name="Cr54" wo="0.0009813456829042457"/>
+      <nuclide name="Ti46" wo="0.0031680380863104225"/>
+      <nuclide name="Ti47" wo="0.002919112929278088"/>
+      <nuclide name="Ti48" wo="0.029538020902329386"/>
+      <nuclide name="Ti49" wo="0.0022128762152676786"/>
+      <nuclide name="Ti50" wo="0.0021619518668144254"/>
+    </material>
+    <material depletable="true" id="6" name="tungsten" volume="1">
+      <density units="g/cm3" value="19.3"/>
+      <nuclide name="W180" wo="0.001174575531392815"/>
+      <nuclide name="W182" wo="0.26227049476287323"/>
+      <nuclide name="W183" wo="0.14240602528446922"/>
+      <nuclide name="W184" wo="0.306581920873831"/>
+      <nuclide name="W186" wo="0.28756698354743376"/>
+    </material>
+    <material depletable="true" id="9" name="burner_mixture" volume="1">
+      <density units="g/cm3" value="2.2316088315278932"/>
+      <nuclide ao="0.021466028571428573" name="Li6"/>
+      <nuclide ao="0.2613911142857143" name="Li7"/>
+      <nuclide ao="0.14142857142857143" name="Be9"/>
+      <nuclide ao="0.5657142857142857" name="F19"/>
+      <nuclide ao="7.199999999999999e-05" name="U235"/>
+      <nuclide ao="0.009928000000000001" name="U238"/>
+    </material>
+  </materials>
+  <geometry>
+    <cell id="1" material="1" name="plasma_cell" region="-1" universe="1"/>
+    <cell id="2" material="void" name="sol_cell" region="1 -2" universe="1"/>
+    <cell id="3" material="6" name="first_wall_cell" region="2 -3" universe="1"/>
+    <cell id="4" material="5" name="vv_cell" region="3 -4" universe="1"/>
+    <cell id="5" material="9" name="blanket_cell" region="4 -5" universe="1"/>
+    <cell id="6" material="5" name="bv_cell" region="5 -6" universe="1"/>
+    <cell id="7" material="void" name="bounding_sphere_cell" region="6 -7" universe="1"/>
+    <surface coeffs="0 0 0 680 120 120" id="1" type="z-torus"/>
+    <surface coeffs="0 0 0 680 125 125" id="2" type="z-torus"/>
+    <surface coeffs="0 0 0 680 126 126" id="3" type="z-torus"/>
+    <surface coeffs="0 0 0 680 128 128" id="4" type="z-torus"/>
+    <surface coeffs="0 0 0 680 148 148" id="5" type="z-torus"/>
+    <surface coeffs="0 0 0 680 153 153" id="6" type="z-torus"/>
+    <surface boundary="vacuum" coeffs="0.0 0.0 0.0 1360" id="7" type="sphere"/>
+  </geometry>
+  <settings>
+    <run_mode>fixed source</run_mode>
+    <particles>100000</particles>
+    <batches>50</batches>
+    <source particle="neutron" strength="1.0" type="independent">
+      <space origin="0.0 0.0 0.0" type="cylindrical">
+        <r type="discrete">
+          <parameters>680.0 1.0</parameters>
+        </r>
+        <phi parameters="0.0 6.283185307179586" type="uniform"/>
+        <z type="discrete">
+          <parameters>0.0 1.0</parameters>
+        </z>
+      </space>
+      <angle type="isotropic"/>
+      <energy parameters="14080000.0 335618.8314144485" type="normal"/>
+    </source>
+    <output>
+      <tallies>true</tallies>
+    </output>
+    <state_point>
+      <batches>5 10 15 20 25 30 35 40 45 50 55 60 65 70 75 80 85 90 95 100</batches>
+    </state_point>
+    <photon_transport>false</photon_transport>
+  </settings>
+  <tallies>
+    <filter id="1" type="cell">
+      <bins>5</bins>
+    </filter>
+    <filter id="2" type="energy">
+      <bins>1.0 1.3894954943731377 1.93069772888325 2.6826957952797255 3.72759372031494 5.17947467923121 7.196856730011519 10.0 13.894954943731374 19.306977288832496 26.826957952797247 37.2759372031494 51.7947467923121 71.96856730011518 100.0 138.94954943731375 193.06977288832496 268.26957952797244 372.7593720314938 517.9474679231207 719.6856730011514 1000.0 1389.4954943731375 1930.6977288832495 2682.6957952797247 3727.593720314938 5179.474679231207 7196.856730011514 10000.0 13894.95494373136 19306.977288832495 26826.95795279722 37275.93720314938 51794.74679231213 71968.56730011514 100000.0 138949.5494373136 193069.77288832495 268269.5795279722 372759.3720314938 517947.4679231202 719685.6730011514 1000000.0 1389495.494373136 1930697.7288832497 2682695.7952797217 3727593.720314938 5179474.679231202 7196856.730011513 10000000.0</bins>
+    </filter>
+    <tally id="1" name="flux_blanket">
+      <filters>1 2</filters>
+      <scores>flux</scores>
+    </tally>
+    <tally id="2" name="tbr">
+      <filters>1</filters>
+      <scores>(n,Xt)</scores>
+    </tally>
+    <tally id="3" name="heating_burner">
+      <filters>1</filters>
+      <scores>heating-local</scores>
+    </tally>
+  </tallies>
+</model>

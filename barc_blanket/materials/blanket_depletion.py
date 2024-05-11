@@ -116,9 +116,9 @@ def plot_results(case:str, print_name:str):
             table_2_sum_of_fractions.append(cell_result_dictionary[time]['table_2_sum_of_fractions'])
 
         # Plot the results on a single plot with semilog y axis
-        fig, ax = plt.subplots()
-        ax.semilogy(times, table_1_sum_of_fractions, label='Table 1')
-        ax.semilogy(times, table_2_sum_of_fractions, label='Table 2')
+        fig, ax = plt.subplots(figsize=(10, 6))
+        ax.semilogy(times, table_1_sum_of_fractions, label='Table 1', linewidth=2)
+        ax.semilogy(times, table_2_sum_of_fractions, label='Table 2', linewidth=2)
         ax.set_xlabel('Time (years)', fontsize=16)
         ax.set_ylabel('Sum of Fractions', fontsize=16)
 
@@ -127,11 +127,18 @@ def plot_results(case:str, print_name:str):
         # Put a horizontal line at 2.33 for reference
         ax.axhline(2.33, color='purple', linestyle='--', label='CCLLW with Vitrification', linewidth=2)
         ax.set_xlim(0, 100)
-        ax.legend()
+        ax.legend(fontsize=12)
         ax.set_title(f'{print_name} Sum of Fractions', fontsize=18)
 
-        # Save figure to file
-        fig.savefig(f'{case}_sum_of_fractions.png')
+        # Customize tick labels
+        ax.tick_params(axis='both', which='major', labelsize=12)
+        ax.tick_params(axis='both', which='minor', labelsize=10)
+
+        # Add gridlines
+        ax.grid(True, which='both', linestyle='--', linewidth=0.5)
+
+        # Save figure to file with higher resolution
+        fig.savefig(f'{case}_sum_of_fractions.png', dpi=300)
 
         # Culprits in Table 1
 
@@ -142,13 +149,20 @@ def plot_results(case:str, print_name:str):
         # Find the 6 largest entries
         table_1_culprits = sorted(table_1_culprits.items(), key=lambda x: x[1], reverse=True)[:6]
 
-        fig, ax = plt.subplots()
-        ax.bar([x[0] for x in table_1_culprits], [x[1] for x in table_1_culprits], label='Table 1')
+        fig, ax = plt.subplots(figsize=(10, 6))
+        ax.bar([x[0] for x in table_1_culprits], [x[1] for x in table_1_culprits], label='Table 1', color='tab:blue')
         ax.set_xlabel('Nuclide', fontsize=16)
         ax.set_ylabel('Fraction', fontsize=16)
 
         ax.set_title(f'{print_name} Table 1 dominant nuclides at {time} years', fontsize=18)
 
-        # Save figure to file
-        fig.savefig(f'{case}_table_1_culprits.png')
+        # Customize tick labels
+        ax.tick_params(axis='both', which='major', labelsize=12)
+        ax.tick_params(axis='both', which='minor', labelsize=10)
+
+        # Add gridlines
+        ax.grid(True, axis='y', linestyle='--', linewidth=0.5)
+
+        # Save figure to file with higher resolution
+        fig.savefig(f'{case}_table_1_culprits.png', dpi=300)
         

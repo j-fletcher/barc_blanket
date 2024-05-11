@@ -23,7 +23,7 @@ DEFAULT_PARAMETERS = {
 
     'section_angle': 45,            # Angle of the toroidal section in degrees
 
-    'li6_enrichment': 7.6,        # atom% enrichment of Li6 in the FLiBe
+    'li6_enrichment': 0.076,        # atom% enrichment of Li6 in the FLiBe
     'slurry_ratio': 0.01,           # weight% slurry in the burner blanket
     'removed_Sr90': 0.0,            # fraction of Sr90 removed from the waste stream
     'removed_Cs137': 0.0,           # fraction of Cs137 removed from the waste stream
@@ -32,13 +32,6 @@ DEFAULT_PARAMETERS = {
     'removed_U': 0.0,               # fraction of U removed from from the waste stream
     'removed_Pu': 0.0,              # fraction of Pu removed from from the waste stream
     'removed_Th': 0.0,              # fraction of Th removed from from the waste stream
-
-    'materials_xml_id':1,           # ID for the materials XML file to use
-                                    #1 - most active tank, all waste phases present
-                                    #2 - All-tank mix, all waste phases present
-                                    #3 - All-tank mix, U, Th, Pu removed
-                                    #4 - All-tank mix, sludge phases only, Sr, Cs removed
-                                    #5 - All-tank mix, sludge phases only, Sr, Cs, U, Th, Pu removed
   
     'batches': 50,               # Number of batches to run
     'particles': int(1e5),       # Number of particles per batch
@@ -79,13 +72,9 @@ def make_model(new_model_config=None):
     first_wall_material = tungsten()
     vacuum_vessel_material = v4cr4ti()
     flibe_material = flibe(model_config['li6_enrichment'])
-    cooling_channel_material = burner_mixture(model_config['slurry_ratio'],
-                                      id=model_config['materials_xml_id'],
-                                      flibe=flibe_material)
+    cooling_channel_material = burner_mixture(model_config['slurry_ratio'], id=2, flibe=flibe_material)
     cooling_vessel_material = v4cr4ti()
-    blanket_material = burner_mixture(model_config['slurry_ratio'],
-                                      id=model_config['materials_xml_id'],
-                                      flibe=flibe_material)
+    blanket_material = burner_mixture(model_config['slurry_ratio'], id=2, flibe=flibe_material)
     blanket_vessel_material = v4cr4ti()
 
     # Remove some nuclides from blanket materials if applicable

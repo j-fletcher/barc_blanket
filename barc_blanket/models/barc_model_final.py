@@ -1,6 +1,7 @@
 import openmc
 import numpy as np
-from .materials import dt_plasma, tungsten, v4cr4ti, flibe
+from .materials_tools import dt_plasma, tungsten, v4cr4ti, flibe
+from barc_blanket.materials.waste_classification import separate_nuclides
 
 DEFAULT_PARAMETERS = {
 
@@ -23,6 +24,8 @@ DEFAULT_PARAMETERS = {
     'vacuum_vessel_material': v4cr4ti(),
     'blanket_vessel_material': v4cr4ti(),
     'blanket_material': flibe(),
+
+    'removed_U238': 0.0,               # fraction of U removed from from the waste stream
 
     'batches': 50,
     'inactive_batches': 5,
@@ -58,6 +61,15 @@ def make_model(new_model_config=None):
                 model_config[key] = DEFAULT_PARAMETERS[key]
             else:
                 print(f"Using set value for {key}:\t {model_config[key]}")
+
+    removed_materials_dict = {}
+    if not np.isclose(model_config['removed_U238'], 0):
+        removed_materials_dict['U238'] = model_config['removed_U238']
+
+    if len(removed_materials_dict.keys()) > 0:
+        blanket_material = separate_nuclides(model_config['blanket_material'], removed_materials_dict)
+    else:
+        blanket_material = model_config['blanket_material']
 
     #####################
     ## Define Geometry ##
@@ -130,7 +142,7 @@ def make_model(new_model_config=None):
     cooling_channel_cell = openmc.Cell(
         name='cooling_channel_cell',
         region=+first_wall_outer_surface & -cooling_vessel_inner_surface & torus_section,
-        fill=model_config['blanket_material']
+        fill=blanket_material
     )
     cooling_channel_cell.fill.volume = (2*np.pi*R)*np.pi*(first_wall_outer_radius**2 - cooling_vessel_inner_radius**2)*elongation*SECTION_CORRECTION
 
@@ -151,7 +163,7 @@ def make_model(new_model_config=None):
     blanket_cell = openmc.Cell(
         name='blanket_cell',
         region=+vacuum_vessel_outer_surface & -blanket_vessel_inner_surface & torus_section,
-        fill=model_config['blanket_material']
+        fill=blanket_material
     )
     enclosed_volume = (2*np.pi*blanket_vessel_major_radius)*np.pi*blanket_vessel_inner_radius**2*elongation*0.8
     removed_volume = (2*np.pi*R)*np.pi*vacuum_vessel_outer_radius**2*elongation

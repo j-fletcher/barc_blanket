@@ -33,7 +33,7 @@ from matplotlib.colors import LogNorm
 
 from barc_blanket.vessel_activation import CHAIN_FILE, CROSS_SECTIONS
 from barc_blanket.utilities import working_directory
-from barc_blanket.models.materials import water
+from barc_blanket.models.materials_tools import water
 
 openmc.config['cross_sections'] = CROSS_SECTIONS
 openmc.config['chain_file'] = CHAIN_FILE

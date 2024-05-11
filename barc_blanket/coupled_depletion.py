@@ -34,7 +34,7 @@ op = openmc.deplete.CoupledOperator(model,
 
 # Set output directory 
 
-output_dir = Path('./depletion_results_tank')
+output_dir = Path('./depletion_results')
 op.output_dir=output_dir
 
 # Run model

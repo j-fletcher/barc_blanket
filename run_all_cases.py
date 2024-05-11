@@ -5,7 +5,7 @@ import os
 from barc_blanket.utilities import working_directory
 from barc_blanket.models.barc_model_final import make_model, mo
 from barc_blanket.materials.blanket_depletion import run_coupled_depletion
-from barc_blanket.models.materials import flibe, lid, pbli, burner_mixture
+from barc_blanket.models.materials_tools import flibe, lid, pbli, burner_mixture
 
 CASES = {
     'pure_flibe': {'blanket_material': flibe(),
