@@ -227,29 +227,34 @@ def make_model(new_model_config=None):
     tbr_tally.scores = ['(n,Xt)']
 
     # Tallies for neutron power deposition in each layer
+    if model_config['photon_transport'] is True:
+        heating_tally_type = ['heating']
+    elif model_config['photon_transport'] is False:
+        heating_tally_type = ['heating-local']
+
     first_wall_heating_tally = openmc.Tally(tally_id=3, name='neutron_heating_first_wall')
     first_wall_heating_tally.filters = [first_wall_cell_filter]
-    first_wall_heating_tally.scores = ['heating']
+    first_wall_heating_tally.scores = heating_tally_type
 
     cooling_channel_heating_tally = openmc.Tally(tally_id=4, name='neutron_heating_cooling_channel')
     cooling_channel_heating_tally.filters = [cooling_channel_cell_filter]
-    cooling_channel_heating_tally.scores = ['heating']
+    cooling_channel_heating_tally.scores = heating_tally_type
 
     cooling_vessel_heating_tally = openmc.Tally(tally_id=5, name='neutron_heating_cooling_vessel')
     cooling_vessel_heating_tally.filters = [cooling_vessel_cell_filter]
-    cooling_vessel_heating_tally.scores = ['heating']
+    cooling_vessel_heating_tally.scores = heating_tally_type
 
     vacuum_vessel_heating_tally = openmc.Tally(tally_id=6, name='neutron_heating_vacuum_vessel')
     vacuum_vessel_heating_tally.filters = [vacuum_vessel_cell_filter]
-    vacuum_vessel_heating_tally.scores = ['heating']
+    vacuum_vessel_heating_tally.scores = heating_tally_type
 
     blanket_heating_tally = openmc.Tally(tally_id=7, name='neutron_heating_blanket')
     blanket_heating_tally.filters = [blanket_cell_filter]
-    blanket_heating_tally.scores = ['heating']
+    blanket_heating_tally.scores = heating_tally_type
     
     blanket_vessel_heating_tally = openmc.Tally(tally_id=8, name='neutron_heating_blanket_vessel')
     blanket_vessel_heating_tally.filters = [blanket_vessel_cell_filter]
-    blanket_vessel_heating_tally.scores = ['heating']
+    blanket_vessel_heating_tally.scores = heating_tally_type
 
 
     tallies = openmc.Tallies([

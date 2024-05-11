@@ -1,40 +1,32 @@
 import os
 import openmc
 
-from barc_blanket.models.barc_model_simple_toroidal import make_model, DEFAULT_PARAMETERS
-from barc_blanket.models.barc_model_tungsten_cooling_channel import make_model_tungsten_cooling
+from barc_blanket.models.barc_model_final import make_model
 from barc_blanket.utilities import working_directory
+from barc_blanket.vessel_activation import get_cell_volume_in_mesh
 
-JOULES_PER_EV = 1.60218e-19
-SOURCE_PARTICLES_PER_GW = 3.55e20
+JOULES_PER_EV = 1.6e-19
 
 with working_directory("neutron_heating"):
 
-    # Make and run the model
-    # model = make_model({"batches": 20,
-    #                     "particles": 1e4, 
-    #                     "photon_transport": True,
-    #                     "slurry_ratio": 0, 
-    #                     "section_angle": 10, 
-    #                     "first_wall_thickness": 1,
-    #                     })
-    
-    model = make_model_tungsten_cooling({"batches": 20,
-                                         "particles": 1e4, 
-                                        "photon_transport": True,
-                                        "slurry_ratio": 0, 
-                                        "section_angle": 10, 
-                                        "first_wall_thickness": 0.3,
-                                        "cooling_channel_width": 1,
-                                        "cooling_vessel_thickness": 0.3,
-                                        })
+    model = make_model({
+        'batches': 10,
+        'particles': 100
+    })
 
-    model.run()
+    rerun_model = False
+    if rerun_model is True:
+        model.run()
+
+    #get_cell_volume_in_mesh(model, n_samples=1000)
+
     final_statepoint = openmc.StatePoint("statepoint.20.h5")
 
     # Get tally results
     # TODO: do this programmatically instead of hardcoded here
     tallies = final_statepoint.tallies
+
+    source_particles = 
 
     neutron_heating_first_wall_id = 3
     neutron_heating_first_wall_ev = tallies[neutron_heating_first_wall_id].mean[0][0][0]

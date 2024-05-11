@@ -4,15 +4,13 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib as mpl
 from barc_blanket.utilities import working_directory
-from barc_blanket.models.barc_model_simple_toroidal import make_model
+from barc_blanket.models.barc_model_final import make_model
 
 # Create a place to put all the files we'll be working with for depletion
 with working_directory("independent_vessel_activation"):
 
     model_config = {"batches": 10,
-                    "particles": 1000,
-                    "slurry_ratio": 0,
-                    "section_angle": 10,}
+                    "particles": 100}
     model = make_model(model_config)
     # Save model as xml
     model.export_to_model_xml()

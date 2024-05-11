@@ -286,13 +286,13 @@ def plot_2d_dose(statepoint, mesh):
     plot.figure.savefig(f'shut_down_dose_map_timestep_{i_cool}')
 
 def get_cell_volume_in_mesh(
-            self,
+            mesh,
             model: openmc.Model,
             n_samples: int = 10_000,
             prn_seed: Optional[int] = None,
             **kwargs
     ) -> List[openmc.Material]:
-        """ Get the volume of a particular cell 
+        """ Get the volume of a particular cell for elements in a mesh
         Based on the code here:
         https://github.com/openmc-dev/openmc/pull/2971/files#diff-967783d59b58404de3b672e391edb35b65e00bf29f89f11edfa8b44469494c50
         
@@ -347,9 +347,9 @@ def get_cell_volume_in_mesh(
             # Restore original tallies
             model.tallies = original_tallies
 
-        # Create homogenized material for each element
+        # Get volume in mesh cell for each element
         materials = model.geometry.get_all_materials()
-        homogenized_materials = []
+        volume_things = []
         for mat_volume_list in mat_volume_by_element:
             material_ids, volumes = [list(x) for x in zip(*mat_volume_list)]
             total_volume = sum(volumes)
@@ -366,12 +366,6 @@ def get_cell_volume_in_mesh(
             # Compute volume fractions
             volume_fracs = np.array(volumes) / total_volume
 
-            # Get list of materials and mix 'em up!
-            mats = [materials[uid] for uid in material_ids]
-            homogenized_mat = openmc.Material.mix_materials(
-                mats, volume_fracs, 'vo'
-            )
-            homogenized_mat.volume = total_volume
-            homogenized_materials.append(homogenized_mat)
-
-        return homogenized_materials
+            
+            volume_things.append(volumes)
+        return volume_things
