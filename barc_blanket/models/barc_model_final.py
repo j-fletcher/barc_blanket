@@ -112,7 +112,7 @@ def peaking_sector_volume(majorrad,c1,c2,b1,b2,z0=10,theta=np.pi/7):
 
     return sector_volume
 
-def total_layer_volume(majorrad,c1,c2,theta=np.pi/7):
+def total_layer_volume(majorrad,c1,c2,elongation,theta=np.pi/7):
     """Calculate the volume of a toroidal sector from a particluar layer.
        This returns the entire volume of the thick, elliptical toroidal shell section.
   
@@ -147,6 +147,8 @@ def total_layer_volume(majorrad,c1,c2,theta=np.pi/7):
         Semiminor axis of the inner ellipsoid poloidal surface [cm]
     c2 : float
         Semiminor axis of the outer ellipsoid poloidal surface [cm]
+    elongation : float
+        Elliptical elongation factor
     theta : float, optional
         Angle [rad] of toroidal section. Default = (pi)/7
     Returns:
@@ -155,8 +157,6 @@ def total_layer_volume(majorrad,c1,c2,theta=np.pi/7):
     layer_volume : float
         Volume of tokamak layer.
     """
-
-    elongation = model_config['elongation']
     layer_volume = theta*majorrad*np.pi*(c2**2 - c1**2)*elongation
 
     return layer_volume
