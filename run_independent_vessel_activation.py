@@ -5,12 +5,15 @@ import matplotlib.pyplot as plt
 import matplotlib as mpl
 from barc_blanket.utilities import working_directory
 from barc_blanket.models.barc_model_final import make_model
+from barc_blanket.materials.blanket_depletion import gw_to_neutron_rate
+
+FUSION_POWER_GW = 2.2
 
 # Create a place to put all the files we'll be working with for depletion
 with working_directory("independent_vessel_activation"):
 
-    model_config = {"batches": 10,
-                    "particles": 100}
+    model_config = {"batches": 100,
+                    "particles": int(1e6)}
     model = make_model(model_config)
     # Save model as xml
     model.export_to_model_xml()
@@ -18,7 +21,12 @@ with working_directory("independent_vessel_activation"):
     rerun_depletion = True
     times = np.geomspace(0.01, 365, 100)
     if not os.path.exists("depletion_results.h5") or rerun_depletion:
-        run_independent_vessel_activation(model, times=times)
+        for file in ["depletion_results.h5", "fluxes.npy", "blanket_vessel_microxs.csv"]:
+            try:
+                os.remove(file)
+            except FileNotFoundError:
+                pass
+        run_independent_vessel_activation(model, times=times, source_rate=gw_to_neutron_rate(FUSION_POWER_GW))
 
     nuclide_times, nuclides = extract_nuclides(model, cell_name="blanket_vessel_cell", nuclide_names=["V49"])
 

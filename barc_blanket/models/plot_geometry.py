@@ -6,7 +6,7 @@ def plot_geometry(model):
     universe = model.geometry.root_universe
 
     universe.plot(pixels=5000000,
-                  width=(800,400),
+                  width=(800,450),
                   origin=(480, 150, 0),
                   color_by='cell',
                 axes=ax[0]
@@ -28,5 +28,25 @@ def plot_geometry(model):
     ax[1].set_ylabel('z(cm)')
     ax[1].legend(loc='upper right')
     fig.tight_layout()
+
+    return fig
+
+def presentation_plot(model):
+    fig, ax = plt.subplots(1,1, figsize=[6,6])
+
+    universe = model.geometry.root_universe
+
+    universe.plot(width=(800.0, 800.0), 
+                origin=(480.0, 0.0, 0.1), 
+                basis='xz',
+                pixels=5000000,
+                color_by='cell',
+                axes=ax[0]
+                )
+
+    ax[1].set_title('Azimuthal View')
+    ax[1].set_xlabel('x(cm)')
+    ax[1].set_ylabel('z(cm)')
+    ax[1].legend(loc='upper right')
 
     return fig

@@ -298,7 +298,7 @@ def make_model(new_model_config=None):
     cooling_channel_cell = openmc.Cell(
         name='cooling_channel_cell',
         region=+first_wall_outer_surface & -cooling_vessel_inner_surface & torus_section,
-        fill=model_config['blanket_material']
+        fill=copy.deepcopy(model_config['blanket_material'])
     )
     cooling_channel_total_volume = total_layer_volume(R,first_wall_outer_radius,cooling_vessel_inner_radius, elongation)
     if model_config['midplane_split']:

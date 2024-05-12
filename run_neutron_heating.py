@@ -49,15 +49,16 @@ def print_neutron_heating(tallies, cell_name_base, tally_id, model):
     
     return result_dict
 
-with working_directory("neutron_heating"):
+with working_directory("neutron_heating_photon_transport"):
 
     model = make_model({
         'batches': NUM_BATCHES,
         'particles': 1e6,
+        'photon_transport': True,
         'midplane_split': True
     })
 
-    rerun_model = False
+    rerun_model = True
     if rerun_model is True:
         model.run()
 
