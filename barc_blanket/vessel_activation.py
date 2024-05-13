@@ -2,6 +2,9 @@ import openmc
 import openmc.stats
 import openmc.deplete
 import numpy as np
+import tempfile
+from typing import Optional, List
+from barc_blanket.utilities import change_directory
 
 import os
 
@@ -29,11 +32,9 @@ def run_independent_vessel_activation(model:openmc.Model, days=365, num_timestep
         The source rate of neutrons in the model. Default is 3.6e20 (for 1 GW fusion power)
     """
 
-    openmc.config['cross_sections'] = CROSS_SECTIONS
-    openmc.config['chain_file'] = CHAIN_FILE
-
     # Obtain a pointer to the vacuum vessel cell
     first_wall_cell = next(iter(model._cells_by_name["first_wall_cell"]))
+    cooling_vessel_cell = next(iter(model._cells_by_name["cooling_vessel_cell"]))
     vacuum_vessel_cell = next(iter(model._cells_by_name["vacuum_vessel_cell"]))
     blanket_vessel_cell = next(iter(model._cells_by_name["blanket_vessel_cell"]))
 
@@ -42,32 +43,37 @@ def run_independent_vessel_activation(model:openmc.Model, days=365, num_timestep
     # Otherwise, load them from file
     fluxes_file = 'fluxes.npy'
     # TODO: should be able to programmatically put all the microxs in one file, but for now we'll just do it separately
-    first_wall_file = 'first_wall_microxs.csv'
+    first_wall_microxs_file = 'first_wall_microxs.csv'
+    cooling_vessel_microxs_file = 'cooling_vessel_microxs.csv'
     vacuum_vessel_microxs_file = 'vacuum_vessel_microxs.csv'
     blanket_vessel_microxs_file = 'blanket_vessel_microxs.csv'
-    if os.path.exists(fluxes_file) and os.path.exists(first_wall_file) and os.path.exists(vacuum_vessel_microxs_file) and os.path.exists(blanket_vessel_microxs_file):
+    if os.path.exists(fluxes_file) and os.path.exists(first_wall_microxs_file) and os.path.exists(cooling_vessel_microxs_file) and os.path.exists(vacuum_vessel_microxs_file) and os.path.exists(blanket_vessel_microxs_file):
         with open(fluxes_file, 'rb') as f:
             fluxes = np.load(fluxes_file)
-        with open(first_wall_file, 'rb') as f:
-            first_wall_microxs = openmc.deplete.MicroXS.from_csv(first_wall_file)
+        with open(first_wall_microxs_file, 'rb') as f:
+            first_wall_microxs = openmc.deplete.MicroXS.from_csv(first_wall_microxs_file)
+        with open(cooling_vessel_microxs_file, 'rb') as f:
+            cooling_vessel_microxs = openmc.deplete.MicroXS.from_csv(cooling_vessel_microxs_file)
         with open(vacuum_vessel_microxs_file, 'rb') as f:
             vacuum_vessel_microxs = openmc.deplete.MicroXS.from_csv(vacuum_vessel_microxs_file)
         with open(blanket_vessel_microxs_file, 'rb') as f:
             blanket_vessel_microxs = openmc.deplete.MicroXS.from_csv(blanket_vessel_microxs_file)
     else:
-        fluxes, microxs = openmc.deplete.get_microxs_and_flux(model, [first_wall_cell, vacuum_vessel_cell, blanket_vessel_cell])
+        fluxes, microxs = openmc.deplete.get_microxs_and_flux(model, [first_wall_cell, cooling_vessel_cell, vacuum_vessel_cell, blanket_vessel_cell])
         np.save(fluxes_file, fluxes)
         first_wall_microxs = microxs[0]
-        vacuum_vessel_microxs = microxs[1]
-        blanket_vessel_microxs = microxs[2]
-        first_wall_microxs.to_csv(first_wall_file)
+        cooling_vessel_microxs = microxs[1]
+        vacuum_vessel_microxs = microxs[2]
+        blanket_vessel_microxs = microxs[3]
+        first_wall_microxs.to_csv(first_wall_microxs_file)
+        cooling_vessel_microxs.to_csv(cooling_vessel_microxs_file)
         vacuum_vessel_microxs.to_csv(vacuum_vessel_microxs_file)
         blanket_vessel_microxs.to_csv(blanket_vessel_microxs_file)
 
     # Perform depletion (CHECK NORMALIZATION MODE)
-    operator = openmc.deplete.IndependentOperator(openmc.Materials([first_wall_cell.fill, vacuum_vessel_cell.fill, blanket_vessel_cell.fill]),
+    operator = openmc.deplete.IndependentOperator(openmc.Materials([first_wall_cell.fill, cooling_vessel_cell.fill, vacuum_vessel_cell.fill, blanket_vessel_cell.fill]),
                                                     fluxes,
-                                                    [first_wall_microxs, vacuum_vessel_microxs, blanket_vessel_microxs],
+                                                    [first_wall_microxs, cooling_vessel_microxs, vacuum_vessel_microxs, blanket_vessel_microxs],
                                                     normalization_mode='source-rate',
                                                     reduce_chain=True,
                                                     reduce_chain_level=5) # TODO: figure out what this does and why we set to 5
@@ -102,25 +108,26 @@ def run_independent_vessel_decay(model:openmc.Model, results, days=365, num_time
         The times to evaluate activation. If not none, it will override days and num_timesteps.
     """
 
-    openmc.config['cross_sections'] = CROSS_SECTIONS
-    openmc.config['chain_file'] = CHAIN_FILE
-
     # Obtain a pointer to the vessel cells
     first_wall_cell = next(iter(model._cells_by_name["first_wall_cell"]))
+    cooling_vessel_cell = next(iter(model._cells_by_name["cooling_vessel_cell"]))
     vacuum_vessel_cell = next(iter(model._cells_by_name["vacuum_vessel_cell"]))
     blanket_vessel_cell = next(iter(model._cells_by_name["blanket_vessel_cell"]))
 
     # This is a hack until I can figure out how to make it actually work
     fluxes_file = '../independent_vessel_activation/fluxes.npy'
     # TODO: should be able to programmatically put all the microxs in one file, but for now we'll just do it separately
-    first_wall_file = '../independent_vessel_activation/first_wall_microxs.csv'
+    first_wall_microxs_file = '../independent_vessel_activation/first_wall_microxs.csv'
+    cooling_vessel_microxs_file = '../independent_vessel_activation/cooling_vessel_microxs.csv'
     vacuum_vessel_microxs_file = '../independent_vessel_activation/vacuum_vessel_microxs.csv'
     blanket_vessel_microxs_file = '../independent_vessel_activation/blanket_vessel_microxs.csv'
-    if os.path.exists(fluxes_file) and os.path.exists(first_wall_file) and os.path.exists(vacuum_vessel_microxs_file) and os.path.exists(blanket_vessel_microxs_file):
+    if os.path.exists(fluxes_file) and os.path.exists(first_wall_microxs_file) and os.path.exists(vacuum_vessel_microxs_file) and os.path.exists(blanket_vessel_microxs_file):
         with open(fluxes_file, 'rb') as f:
             fluxes = np.load(fluxes_file)
-        with open(first_wall_file, 'rb') as f:
-            first_wall_microxs = openmc.deplete.MicroXS.from_csv(first_wall_file)
+        with open(first_wall_microxs_file, 'rb') as f:
+            first_wall_microxs = openmc.deplete.MicroXS.from_csv(first_wall_microxs_file)
+        with open(cooling_vessel_microxs_file, 'rb') as f:
+            cooling_vessel_microxs = openmc.deplete.MicroXS.from_csv(cooling_vessel_microxs_file)
         with open(vacuum_vessel_microxs_file, 'rb') as f:
             vacuum_vessel_microxs = openmc.deplete.MicroXS.from_csv(vacuum_vessel_microxs_file)
         with open(blanket_vessel_microxs_file, 'rb') as f:
@@ -129,9 +136,9 @@ def run_independent_vessel_decay(model:openmc.Model, results, days=365, num_time
     fluxes = np.zeros(fluxes.shape)
 
     # Perform depletion (CHECK NORMALIZATION MODE)
-    operator = openmc.deplete.IndependentOperator(openmc.Materials([first_wall_cell.fill, vacuum_vessel_cell.fill, blanket_vessel_cell.fill]),
+    operator = openmc.deplete.IndependentOperator(openmc.Materials([first_wall_cell.fill, cooling_vessel_cell.fill, vacuum_vessel_cell.fill, blanket_vessel_cell.fill]),
                                                     fluxes,
-                                                    [first_wall_microxs, vacuum_vessel_microxs, blanket_vessel_microxs],
+                                                    [first_wall_microxs, cooling_vessel_microxs, vacuum_vessel_microxs, blanket_vessel_microxs],
                                                     normalization_mode='source-rate',
                                                     prev_results=results,
                                                     reduce_chain=True,
@@ -281,3 +288,88 @@ def plot_2d_dose(statepoint, mesh):
             scaling_factor=scaling_factor,
         )
     plot.figure.savefig(f'shut_down_dose_map_timestep_{i_cool}')
+
+def get_cell_volume_in_mesh(
+            mesh,
+            model: openmc.Model,
+            n_samples: int = 10_000,
+            prn_seed: Optional[int] = None,
+            **kwargs
+    ) -> List[openmc.Material]:
+        """ Get the volume of a particular cell for elements in a mesh
+        Based on the code here:
+        https://github.com/openmc-dev/openmc/pull/2971/files#diff-967783d59b58404de3b672e391edb35b65e00bf29f89f11edfa8b44469494c50
+        
+        Generate homogenized materials over each element in a mesh.
+        .. versionadded:: 0.14.1
+        Parameters
+        ----------
+        model : openmc.Model
+            Model containing materials to be homogenized and the associated
+            geometry.
+        n_samples : int
+            Number of samples in each mesh element.
+        prn_seed : int, optional
+            Pseudorandom number generator (PRNG) seed; if None, one will be
+            generated randomly.
+        **kwargs
+            Keyword-arguments passed to :func:`openmc.lib.init`.
+        Returns
+        -------
+        material_volumes: dict
+            A dictionary where the keys are the mesh element IDs and the values
+            are the homogenized materials over the element.
+
+
+        """
+        import openmc.lib
+
+        with change_directory(tmpdir=True):
+            # In order to get mesh into model, we temporarily replace the
+            # tallies with a single mesh tally using the current mesh
+            original_tallies = model.tallies
+            new_tally = openmc.Tally()
+            new_tally.filters = [openmc.MeshFilter(self)]
+            new_tally.scores = ['flux']
+            model.tallies = [new_tally]
+
+            # Export model to XML
+            model.export_to_model_xml()
+
+            # Get material volume fractions
+            openmc.lib.init(**kwargs)
+            mesh = openmc.lib.tallies[new_tally.id].filters[0].mesh
+            mat_volume_by_element = [
+                [
+                    (mat.id if mat is not None else None, volume)
+                    for mat, volume in mat_volume_list
+                ]
+                for mat_volume_list in mesh.material_volumes(n_samples, prn_seed)
+            ]
+            openmc.lib.finalize()
+
+            # Restore original tallies
+            model.tallies = original_tallies
+
+        # Get volume in mesh cell for each element
+        materials = model.geometry.get_all_materials()
+        volume_things = []
+        for mat_volume_list in mat_volume_by_element:
+            material_ids, volumes = [list(x) for x in zip(*mat_volume_list)]
+            total_volume = sum(volumes)
+
+            # Check for void material and remove
+            try:
+                index_void = material_ids.index(None)
+            except ValueError:
+                pass
+            else:
+                material_ids.pop(index_void)
+                volumes.pop(index_void)
+
+            # Compute volume fractions
+            volume_fracs = np.array(volumes) / total_volume
+
+            
+            volume_things.append(volumes)
+        return volume_things
