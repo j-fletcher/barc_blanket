@@ -1,3 +1,4 @@
+import copy
 import openmc
 import numpy as np
 from .materials import dt_plasma, tungsten, v4cr4ti, flibe, ss316L, shield, magnetmat
@@ -37,13 +38,17 @@ DEFAULT_PARAMETERS = {
     'inactive_batches': 0,
     'particles': int(1e6),
 
-    'photon_transport': False
+    'photon_transport': False,
+
+    'midplane_split': False
 }
 
 BLANKET_MATERIAL_ID = 5
 SECTION_CORRECTION = 1/14 # This model is a section of the torus, so the volume is 1/14 of the total volume
 
-def peaking_sector_volume(majorrad,c1,c2,b1,b2,z0=10,theta=np.pi/7):
+MIDPLANE_OFFSET = 20
+
+def peaking_sector_volume(majorrad,c1,c2,b1,b2,z0=MIDPLANE_OFFSET,theta=2*np.pi*SECTION_CORRECTION):
     """Calculate the volume of the inboard midplane sector from a particluar layer, where the flux and heating peak.
        This is represented by the shaded region below.
   
@@ -86,7 +91,7 @@ def peaking_sector_volume(majorrad,c1,c2,b1,b2,z0=10,theta=np.pi/7):
         Half-height [cm] of "midplane" sector. Larger z0 produces better tally statistics, but poorer fidelity
         when calculating peaking factors. Default = 10 cm
     theta : float, optional
-        Angle [rad] of toroidal section. Default = (pi)/7
+        Angle [rad] of toroidal section. Default = 2pi/(number of sections in torus)
 
     Returns:
     -------
@@ -112,7 +117,7 @@ def peaking_sector_volume(majorrad,c1,c2,b1,b2,z0=10,theta=np.pi/7):
 
     return sector_volume
 
-def total_layer_volume(majorrad,c1,c2,theta=np.pi/7):
+def total_layer_volume(majorrad,c1,c2,elongation,theta=2*np.pi*SECTION_CORRECTION):
     """Calculate the volume of a toroidal sector from a particluar layer.
        This returns the entire volume of the thick, elliptical toroidal shell section.
   
@@ -147,20 +152,19 @@ def total_layer_volume(majorrad,c1,c2,theta=np.pi/7):
         Semiminor axis of the inner ellipsoid poloidal surface [cm]
     c2 : float
         Semiminor axis of the outer ellipsoid poloidal surface [cm]
+    elongation : float
+        Elliptical elongation factor
     theta : float, optional
-        Angle [rad] of toroidal section. Default = (pi)/7
+        Angle [rad] of toroidal section. Default = 2pi/(number of sections in torus)
     Returns:
     -------
 
     layer_volume : float
         Volume of tokamak layer.
     """
-
-    elongation = model_config['elongation']
     layer_volume = theta*majorrad*np.pi*(c2**2 - c1**2)*elongation
 
     return layer_volume
-
 
 def make_model(new_model_config=None):
     """Create an OpenMC model using the given configuration
@@ -251,13 +255,12 @@ def make_model(new_model_config=None):
     firstcm_outer_radius = inner_case_outer_radius+1
     firstcm_outer_surface = openmc.ZTorus(x0=0,y0=0,z0=0,a=blanket_vessel_major_radius,b=firstcm_outer_radius*elongation*0.8,c=firstcm_outer_radius)
     
-    midplane_upper_bound = openmc.ZPlane(z0=10)
-    midplane_lower_bound = openmc.ZPlane(z0=-10)
+    midplane_upper_bound = openmc.ZPlane(z0=MIDPLANE_OFFSET)
+    midplane_lower_bound = openmc.ZPlane(z0=-MIDPLANE_OFFSET)
     midplane_ib_bound = openmc.ZCylinder(r=blanket_vessel_major_radius)
     midpl = -midplane_upper_bound & +midplane_lower_bound & -midplane_ib_bound
 
-    # Make two p
-        # Make two planes to cut the torus into a section
+    # Make two planes to cut the torus into a section
     # Angle follows right hand rule around z axis (https://www.desmos.com/3d/214a6bb908)
     section_angle_rad = np.radians(360*SECTION_CORRECTION)
     x_coeff, y_coeff = np.sin(section_angle_rad), -np.cos(section_angle_rad)
@@ -278,28 +281,76 @@ def make_model(new_model_config=None):
         region=+first_wall_inner_surface & -first_wall_outer_surface & torus_section,
         fill=model_config['first_wall_material']
     )
-    first_wall_cell.fill.volume = total_layer_volume(R,first_wall_inner_radius,first_wall_outer_radius)
+    first_wall_total_volume = total_layer_volume(R,first_wall_inner_radius,first_wall_outer_radius, elongation)
+    if model_config['midplane_split']:
+        first_wall_midpl = openmc.Cell(
+            name='first_wall_midpl',
+            region = first_wall_cell.region & midpl,
+            fill=copy.deepcopy(model_config['first_wall_material'])
+        )
+        first_wall_cell.region = first_wall_cell.region & ~midpl
+        first_wall_midpl_volume = peaking_sector_volume(R,first_wall_inner_radius,first_wall_outer_radius,first_wall_inner_radius*elongation,first_wall_outer_radius*elongation)
+        first_wall_cell.fill.volume = first_wall_total_volume - first_wall_midpl_volume
+        first_wall_midpl.fill.volume = first_wall_midpl_volume
+    else:
+        first_wall_cell.fill.volume = first_wall_total_volume
 
     cooling_channel_cell = openmc.Cell(
         name='cooling_channel_cell',
         region=+first_wall_outer_surface & -cooling_vessel_inner_surface & torus_section,
-        fill=model_config['blanket_material']
+        fill=copy.deepcopy(model_config['blanket_material'])
     )
-    cooling_channel_cell.fill.volume = total_layer_volume(R,first_wall_outer_radius,cooling_vessel_inner_radius)
+    cooling_channel_total_volume = total_layer_volume(R,first_wall_outer_radius,cooling_vessel_inner_radius, elongation)
+    if model_config['midplane_split']:
+        cooling_channel_midpl = openmc.Cell(
+            name='cooling_channel_midpl',
+            region = cooling_channel_cell.region & midpl,
+            fill=copy.deepcopy(model_config['blanket_material'])
+        )
+        cooling_channel_cell.region = cooling_channel_cell.region & ~midpl
+        cooling_channel_midpl_volume = peaking_sector_volume(R,first_wall_outer_radius,cooling_vessel_inner_radius,first_wall_outer_radius*elongation,cooling_vessel_inner_radius*elongation)
+        cooling_channel_cell.fill.volume = cooling_channel_total_volume - cooling_channel_midpl_volume
+        cooling_channel_midpl.fill.volume = cooling_channel_midpl_volume
+    else:
+        cooling_channel_cell.fill.volume = cooling_channel_total_volume
 
     cooling_vessel_cell = openmc.Cell(
         name='cooling_vessel_cell',
         region=+cooling_vessel_inner_surface & -cooling_vessel_outer_surface & torus_section,
         fill=model_config['cooling_vessel_material']
     )
-    cooling_vessel_cell.fill.volume = total_layer_volume(R,cooling_vessel_inner_radius,cooling_vessel_outer_radius)
+    cooling_vessel_total_volume = total_layer_volume(R,cooling_vessel_inner_radius,cooling_vessel_outer_radius, elongation)
+    if model_config['midplane_split']:
+        cooling_vessel_midpl = openmc.Cell(
+            name='cooling_vessel_midpl',
+            region = cooling_vessel_cell.region & midpl,
+            fill=copy.deepcopy(model_config['cooling_vessel_material'])
+        )
+        cooling_vessel_cell.region = cooling_vessel_cell.region & ~midpl
+        cooling_vessel_midpl_volume = peaking_sector_volume(R,cooling_vessel_inner_radius,cooling_vessel_outer_radius,cooling_vessel_inner_radius*elongation,cooling_vessel_outer_radius*elongation)
+        cooling_vessel_cell.fill.volume = cooling_vessel_total_volume - cooling_vessel_midpl_volume
+        cooling_vessel_midpl.fill.volume = cooling_vessel_midpl_volume
+    else:
+        cooling_vessel_cell.fill.volume = cooling_vessel_total_volume
 
     vacuum_vessel_cell = openmc.Cell(
         name='vacuum_vessel_cell',
         region=+vacuum_vessel_inner_surface & -vacuum_vessel_outer_surface & torus_section,
         fill=model_config['vacuum_vessel_material']
     )
-    vacuum_vessel_cell.fill.volume = total_layer_volume(R,vacuum_vessel_inner_radius,vacuum_vessel_outer_radius)
+    vacuum_vessel_total_volume = total_layer_volume(R,vacuum_vessel_inner_radius,vacuum_vessel_outer_radius, elongation)
+    if model_config['midplane_split']:
+        vacuum_vessel_midpl = openmc.Cell(
+            name='vacuum_vessel_midpl',
+            region = vacuum_vessel_cell.region & midpl,
+            fill=copy.deepcopy(model_config['vacuum_vessel_material'])
+        )
+        vacuum_vessel_cell.region = vacuum_vessel_cell.region & ~midpl
+        vacuum_vessel_midpl_volume = peaking_sector_volume(R,vacuum_vessel_inner_radius,vacuum_vessel_outer_radius,vacuum_vessel_inner_radius*elongation,vacuum_vessel_outer_radius*elongation)
+        vacuum_vessel_cell.fill.volume = vacuum_vessel_total_volume - vacuum_vessel_midpl_volume
+        vacuum_vessel_midpl.fill.volume = vacuum_vessel_midpl_volume
+    else:
+        vacuum_vessel_cell.fill.volume = vacuum_vessel_total_volume
 
     # Volume of blanket is calculated differently because it has two non-concentric ellipses in its poloidal xs
     blanket_cell = openmc.Cell(
@@ -310,28 +361,39 @@ def make_model(new_model_config=None):
     enclosed_volume = (2*np.pi*blanket_vessel_major_radius)*np.pi*blanket_vessel_inner_radius**2*elongation*0.8
     removed_volume = (2*np.pi*R)*np.pi*vacuum_vessel_outer_radius**2*elongation
     blanket_cell.fill.volume = (enclosed_volume - removed_volume) * SECTION_CORRECTION
-    #
 
     blanket_vessel_cell = openmc.Cell(
         name='blanket_vessel_cell',
         region=+blanket_vessel_inner_surface & -blanket_vessel_outer_surface & torus_section,
         fill=model_config['blanket_vessel_material']
     )
-    blanket_vessel_cell.fill.volume = total_layer_volume(blanket_vessel_major_radius,blanket_vessel_inner_radius,blanket_vessel_outer_radius)
+    total_blanket_vessel_volume = total_layer_volume(blanket_vessel_major_radius,blanket_vessel_inner_radius,blanket_vessel_outer_radius, elongation)
+    if model_config['midplane_split']:
+        blanket_vessel_midpl = openmc.Cell(
+            name='blanket_vessel_midpl',
+            region = blanket_vessel_cell.region & midpl,
+            fill=copy.deepcopy(model_config['blanket_vessel_material'])
+        )
+        blanket_vessel_cell.region = blanket_vessel_cell.region & ~midpl
+        blanket_vessel_midpl_volume = peaking_sector_volume(blanket_vessel_major_radius,blanket_vessel_inner_radius,blanket_vessel_outer_radius,blanket_vessel_inner_radius*elongation,blanket_vessel_outer_radius*elongation)
+        blanket_vessel_cell.fill.volume = total_blanket_vessel_volume - blanket_vessel_midpl_volume
+        blanket_vessel_midpl.fill.volume = blanket_vessel_midpl_volume
+    else:
+        blanket_vessel_cell.fill.volume = total_blanket_vessel_volume
 
     neutron_shield_cell = openmc.Cell(
         name='neutron_shield_cell',
         region=+blanket_vessel_outer_surface & -neutron_shield_outer_surface & torus_section,
         fill=model_config['magnetcase_material']
     )
-    neutron_shield_cell.fill.volume = total_layer_volume(blanket_vessel_major_radius,blanket_vessel_outer_radius,neutron_shield_outer_radius)
+    neutron_shield_cell.fill.volume = total_layer_volume(blanket_vessel_major_radius,blanket_vessel_outer_radius,neutron_shield_outer_radius, elongation)
 
     inner_case_cell = openmc.Cell(
         name='inner_case_cell',
         region=+neutron_shield_outer_surface & -inner_case_outer_surface & torus_section,
         fill=model_config['magnetcase_material']
     )
-    inner_case_cell.fill.volume = total_layer_volume(blanket_vessel_major_radius,neutron_shield_outer_radius,inner_case_outer_radius)
+    inner_case_cell.fill.volume = total_layer_volume(blanket_vessel_major_radius,neutron_shield_outer_radius,inner_case_outer_radius, elongation)
 
     first_cm_cell = openmc.Cell(
         name='first_cm_cell',
@@ -342,10 +404,10 @@ def make_model(new_model_config=None):
 
     magnet_coil_cell = openmc.Cell(
         name='magnet_coil_cell',
-        region=+inner_case_outer_surface & -magnet_coil_outer_surface & torus_section ~first_cm_cell,
+        region=+inner_case_outer_surface & -magnet_coil_outer_surface & torus_section & ~first_cm_cell.region,
         fill=model_config['magnet_material']
     )
-    magnet_coil_cell.fill.volume = total_layer_volume(blanket_vessel_major_radius,inner_case_outer_radius,magnet_coil_outer_radius) - 
+    magnet_coil_cell.fill.volume = total_layer_volume(blanket_vessel_major_radius,inner_case_outer_radius,magnet_coil_outer_radius, elongation) - \
         peaking_sector_volume(blanket_vessel_major_radius,inner_case_outer_radius,firstcm_outer_radius,inner_case_outer_radius*elongation*0.8,firstcm_outer_radius*elongation*0.8)
 
     outer_case_cell = openmc.Cell(
@@ -353,7 +415,7 @@ def make_model(new_model_config=None):
         region=+magnet_coil_outer_surface & -outer_case_outer_surface & torus_section,
         fill=model_config['magnetcase_material']
     )
-    outer_case_cell.fill.volume = total_layer_volume(blanket_vessel_major_radius,magnet_coil_outer_radius,outer_case_outer_radius)
+    outer_case_cell.fill.volume = total_layer_volume(blanket_vessel_major_radius,magnet_coil_outer_radius,outer_case_outer_radius, elongation)
 
     universe = openmc.Universe(
         cells=[
@@ -371,6 +433,14 @@ def make_model(new_model_config=None):
             outer_case_cell
         ]
     )
+    if model_config['midplane_split']:
+        universe.add_cells([
+            first_wall_midpl,
+            cooling_channel_midpl,
+            cooling_vessel_midpl,
+            vacuum_vessel_midpl,
+            blanket_vessel_midpl])
+
     geometry = openmc.Geometry(universe)
 
     #####################
@@ -399,20 +469,20 @@ def make_model(new_model_config=None):
     settings.statepoint = {'batches': list(statepoint_set)}
     settings.output = {'tallies': True}
 
-    # create weight windows for global variance reduction
-    ww_mesh = openmc.CylindricalMesh()
-    ww_mesh.r_grid = np.linspace((blanket_vessel_major_radius - outer_case_outer_radius), (blanket_vessel_major_radius + outer_case_outer_radius), 100)
-    ww_mesh.z_grid = np.linspace((0 - outer_case_outer_radius*elongation*0.8),(outer_case_outer_radius*elongation*0.8),100)
-    ww_mesh.phi_grid = [0, section_angle_rad]
-    ww_mesh_filter = openmc.MeshFilter(ww_mesh,filter_id=99)
+    # # create weight windows for global variance reduction
+    # ww_mesh = openmc.CylindricalMesh()
+    # ww_mesh.r_grid = np.linspace((blanket_vessel_major_radius - outer_case_outer_radius), (blanket_vessel_major_radius + outer_case_outer_radius), 100)
+    # ww_mesh.z_grid = np.linspace((0 - outer_case_outer_radius*elongation*0.8),(outer_case_outer_radius*elongation*0.8),100)
+    # ww_mesh.phi_grid = [0, section_angle_rad]
+    # ww_mesh_filter = openmc.MeshFilter(ww_mesh,filter_id=99)
     
-    wwg = openmc.WeightWindowGenerator(ww_mesh,np.logspace(-3, 8, 12))
-    wwg.max_realizations = 10
-    wwg.update_interval = 2
-    wwg.update_parameters = {'ratio' : 5.0,
-                             'threshold': 0.5,
-                             'value' : 'mean'}
-    settings.weight_window_generators = wwg
+    # wwg = openmc.WeightWindowGenerator(ww_mesh,np.logspace(-3, 8, 12))
+    # wwg.max_realizations = 10
+    # wwg.update_interval = 2
+    # wwg.update_parameters = {'ratio' : 5.0,
+    #                          'threshold': 0.5,
+    #                          'value' : 'mean'}
+    # settings.weight_window_generators = wwg
 
     #####################
     ## Define Tallies  ##
@@ -424,6 +494,12 @@ def make_model(new_model_config=None):
     cooling_vessel_cell_filter = openmc.CellFilter([cooling_vessel_cell])
     blanket_cell_filter = openmc.CellFilter([blanket_cell])
     blanket_vessel_cell_filter = openmc.CellFilter([blanket_vessel_cell])
+    if model_config['midplane_split']:
+        first_wall_midpl_filter = openmc.CellFilter([first_wall_midpl])
+        cooling_channel_midpl_filter = openmc.CellFilter([cooling_channel_midpl])
+        cooling_vessel_midpl_filter = openmc.CellFilter([cooling_vessel_midpl])
+        vacuum_vessel_midpl_filter = openmc.CellFilter([vacuum_vessel_midpl])
+        blanket_vessel_midpl_filter = openmc.CellFilter([blanket_vessel_midpl])
     
     magnetmat_filter = openmc.MaterialFilter([model_config['magnet_material']])
     first_cm_filter = openmc.CellFilter([first_cm_cell])
@@ -441,29 +517,55 @@ def make_model(new_model_config=None):
     tbr_tally.scores = ['(n,Xt)']
 
     # Tallies for neutron power deposition in each layer
+    if model_config['photon_transport'] is True:
+        heating_tally_type = ['heating']
+    elif model_config['photon_transport'] is False:
+        heating_tally_type = ['heating-local']
+
     first_wall_heating_tally = openmc.Tally(tally_id=3, name='neutron_heating_first_wall')
     first_wall_heating_tally.filters = [first_wall_cell_filter]
-    first_wall_heating_tally.scores = ['heating-local']
+    first_wall_heating_tally.scores = heating_tally_type
 
     cooling_channel_heating_tally = openmc.Tally(tally_id=4, name='neutron_heating_cooling_channel')
     cooling_channel_heating_tally.filters = [cooling_channel_cell_filter]
-    cooling_channel_heating_tally.scores = ['heating-local']
+    cooling_channel_heating_tally.scores = heating_tally_type
 
     cooling_vessel_heating_tally = openmc.Tally(tally_id=5, name='neutron_heating_cooling_vessel')
     cooling_vessel_heating_tally.filters = [cooling_vessel_cell_filter]
-    cooling_vessel_heating_tally.scores = ['heating-local']
+    cooling_vessel_heating_tally.scores = heating_tally_type
 
     vacuum_vessel_heating_tally = openmc.Tally(tally_id=6, name='neutron_heating_vacuum_vessel')
     vacuum_vessel_heating_tally.filters = [vacuum_vessel_cell_filter]
-    vacuum_vessel_heating_tally.scores = ['heating-local']
+    vacuum_vessel_heating_tally.scores = heating_tally_type
 
     blanket_heating_tally = openmc.Tally(tally_id=7, name='neutron_heating_blanket')
     blanket_heating_tally.filters = [blanket_cell_filter]
-    blanket_heating_tally.scores = ['heating-local']
+    blanket_heating_tally.scores = heating_tally_type
     
     blanket_vessel_heating_tally = openmc.Tally(tally_id=8, name='neutron_heating_blanket_vessel')
     blanket_vessel_heating_tally.filters = [blanket_vessel_cell_filter]
-    blanket_vessel_heating_tally.scores = ['heating-local']
+    blanket_vessel_heating_tally.scores = heating_tally_type
+
+    if model_config['midplane_split']:
+        first_wall_midplane_tally = openmc.Tally(tally_id=23, name='neutron_heating_first_wall_midplane')
+        first_wall_midplane_tally.filters = [first_wall_midpl_filter]
+        first_wall_midplane_tally.scores = heating_tally_type
+
+        cooling_channel_midpl_tally = openmc.Tally(tally_id=24, name='neutron_heating_cooling_channel_midplane')
+        cooling_channel_midpl_tally.filters = [cooling_channel_midpl_filter]
+        cooling_channel_midpl_tally.scores = heating_tally_type
+
+        cooling_vessel_midpl_tally = openmc.Tally(tally_id=25, name='neutron_heating_cooling_vessel_midplane')
+        cooling_vessel_midpl_tally.filters = [cooling_vessel_midpl_filter]
+        cooling_vessel_midpl_tally.scores = heating_tally_type
+
+        vacuum_vessel_midpl_tally = openmc.Tally(tally_id=26, name='neutron_heating_vacuum_vessel_midplane')
+        vacuum_vessel_midpl_tally.filters = [vacuum_vessel_midpl_filter]
+        vacuum_vessel_midpl_tally.scores = heating_tally_type
+
+        blanket_vessel_midpl_tally = openmc.Tally(tally_id=28, name='neutron_heating_blanket_vessel_midplane')
+        blanket_vessel_midpl_tally.filters = [blanket_vessel_midpl_filter]
+        blanket_vessel_midpl_tally.scores = heating_tally_type
 
     high_e_filter = openmc.EnergyFilter([100000, 20000000])
 
@@ -477,11 +579,11 @@ def make_model(new_model_config=None):
 
     magnet_heating_tally = openmc.Tally(tally_id=11, name='fast_flux_magnet_coil')
     magnet_heating_tally.filters = [magnetmat_filter]
-    magnet_heating_tally.scores = ['heating-local']
+    magnet_heating_tally.scores = heating_tally_type
 
     peak_magnet_heating_tally = openmc.Tally(tally_id=12, name='fast_flux_first_cm')
     peak_magnet_heating_tally.filters = [first_cm_filter]
-    peak_magnet_heating_tally.scores = ['heating-local']
+    peak_magnet_heating_tally.scores = heating_tally_type
 
 
     tallies = openmc.Tallies([
@@ -498,6 +600,13 @@ def make_model(new_model_config=None):
         magnet_heating_tally,
         peak_magnet_heating_tally
     ])
+
+    if model_config['midplane_split']:
+        tallies.append(first_wall_midplane_tally)
+        tallies.append(cooling_channel_midpl_tally)
+        tallies.append(cooling_vessel_midpl_tally)
+        tallies.append(vacuum_vessel_midpl_tally)
+        tallies.append(blanket_vessel_midpl_tally)
 
     model = openmc.model.Model(
         geometry=geometry,

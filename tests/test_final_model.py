@@ -27,5 +27,25 @@ class TestFinalModel:
             # Save the figure
             fig.savefig("geometry.png")
 
+    def test_make_model_midplane_split(self):
+        """Ensure the make_model function runs without error"""
+        path = "tests/test_final_model/test_make_model_midplane_split"
+        # Clear the working directory
+        os.system(f"rm -rf {path}")
+        os.system(f"mkdir {path}")
+
+        with working_directory(path):
+
+            try:
+                model = make_model({'midplane_split': True})
+            except Exception as e:
+                assert False, e
+
+            # Plot the geometry of the model
+            fig = plot_geometry(model)
+
+            # Save the figure
+            fig.savefig("geometry.png")
+
             
 
